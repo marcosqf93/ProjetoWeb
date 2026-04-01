@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PODBEN | Página Inicial</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+<header class="topbar">
+  <a class="logo" href="index.html"><img class="logo-img" src="https://i.ibb.co/yFXZ4Lhb/channels4-profile.jpg" alt="Logo PODBEN" onerror="this.style.display='none'"/>PODBEN <span>Podcast & Vídeo Cristão</span></a>
+  <button id="menu-toggle">☰ Menu</button>
+  <nav id="menu">
+    <a href="index.html">Início</a><a href="quem-somos.html">Quem Somos</a><a href="noticias.html">Notícias</a><a href="galeria.html">Galeria</a><a href="estudos.html">Estudos Bíblicos</a><a href="colunistas.html">Colunistas</a><a href="admin.html">Login</a>
+  </nav>
+</header>
+
+<main class="container">
+  <section class="hero">
+    <h1>PODBEN - Notícias, Colunas e Fé</h1>
+    <p>Portal cristão com notícias de Aquidauana/MS, colunistas, estudos e leitura bíblica digital.</p>
+    <p class="visitor">👥 Visitantes: <span id="visitor-counter">0</span></p>
+  </section>
+
+  <section>
+    <div class="section-head"><h2>Principais notícias de Aquidauana/MS</h2><a href="noticias.html">Todas as notícias</a></div>
+    <div class="grid" id="home-news"></div>
+  </section>
+
+  <section>
+    <div class="section-head"><h2>Colunistas em destaque</h2><a href="colunistas.html">Ver colunistas</a></div>
+    <div class="cols-highlight" id="home-columnists"></div>
+  </section>
+
+  <section>
+    <div class="section-head"><h2>Fotos em destaque</h2><a href="galeria.html">Galeria completa</a></div>
+    <div class="gallery" id="home-photos"></div>
+  </section>
+
+  <section class="bible-wrap">
+    <h2>Leitura bíblica digital</h2>
+    <p class="meta">Antigo e Novo Testamento com todos os livros e capítulos para abrir direto na Bíblia Online.</p>
+    <div class="bible-actions">
+      <select id="testament-select"><option value="antigoTestamento">Antigo Testamento</option><option value="novoTestamento">Novo Testamento</option></select>
+      <select id="book-select"></select>
+      <select id="chapter-select"></select>
+      <button id="open-bible">Abrir capítulo</button>
+      <button id="prev-chapter" type="button" class="btn-outline">◀ Capítulo anterior</button>
+      <button id="next-chapter" type="button" class="btn-outline">Próximo capítulo ▶</button>
+      <a class="btn btn-outline" href="https://www.bibliaonline.com.br" target="_blank" rel="noreferrer">Bíblia Online completa</a>
+    </div>
+    <div class="bible-embed-wrap">
+      <iframe id="bible-frame" title="Leitura bíblica digital" loading="lazy"></iframe>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>Pedido de oração + comentário</h2>
+    <form id="pedido-form" class="stack">
+      <input name="nome" placeholder="Nome" required />
+      <input name="celular" placeholder="Celular" required />
+      <textarea name="mensagem" rows="4" placeholder="Pedido de oração ou comentário" required></textarea>
+      <div class="row-actions">
+        <button type="submit" name="action" value="whatsapp">Enviar no WhatsApp</button>
+        <button type="submit" name="action" value="comment" class="btn-outline">Deixar comentário</button>
+      </div>
+    </form>
+    <div id="pedido-comments" class="stack"></div>
+  </section>
+</main>
+
+<footer id="site-footer" class="footer"></footer>
+<script src="data.js"></script><script src="app.js"></script>
+</body>
+</html>

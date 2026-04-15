@@ -6,17 +6,18 @@ import { z } from 'zod';
 
 const router = express.Router();
 const loginSchema = z.object({
+  email: z.string().optional(),
   user: z.string().optional(),
   password: z.string().optional(),
   usuario: z.string().optional(),
   senha: z.string().optional(),
   otp: z.string().optional(),
 }).superRefine((val, ctx) => {
-  const user = (val.user || val.usuario || '').trim();
+  const user = (val.email || val.user || val.usuario || '').trim();
   const password = (val.password || val.senha || '').trim();
 
-  if (user.length < 3) {
-    ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'user/usuario inválido' });
+  if (user.length < 5 || !user.includes('@')) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'email inválido' });
   }
   if (password.length < 3) {
     ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'password/senha inválida' });
@@ -36,11 +37,11 @@ function getRequiredEnv(name) {
 async function getUsers() {
   if (usersCache.length) return usersCache;
 
-  const adminUser = getRequiredEnv('ALPHA_USER');
+  const adminUser = process.env.ALPHA_EMAIL || 'quintana.mqf@gmail.com';
   const adminPass = getRequiredEnv('ALPHA_PASS');
-  const columnist1User = getRequiredEnv('COL1_USER');
+  const columnist1User = process.env.COL1_EMAIL || getRequiredEnv('COL1_USER');
   const columnist1Pass = getRequiredEnv('COL1_PASS');
-  const columnist2User = getRequiredEnv('COL2_USER');
+  const columnist2User = process.env.COL2_EMAIL || getRequiredEnv('COL2_USER');
   const columnist2Pass = getRequiredEnv('COL2_PASS');
 
   const defaults = [
@@ -66,9 +67,9 @@ router.post('/login', async (req, res) => {
   const parsed = loginSchema.safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: 'Payload inválido' });
 
-  const user = (parsed.data.user || parsed.data.usuario || '').trim();
+  const user = (parsed.data.email || parsed.data.user || parsed.data.usuario || '').trim().toLowerCase();
   const password = (parsed.data.password || parsed.data.senha || '').trim();
-  const otp = parsed.data.otp;
+  const otp = (parsed.data.otp || '').trim();
   let users;
   try {
     users = await getUsers();
@@ -76,27 +77,27 @@ router.post('/login', async (req, res) => {
     return res.status(500).json({ error: 'Configuração de autenticação inválida no servidor', detail: error.message });
   }
 
-  const account = users.find((u) => u.username === user);
+  const account = users.find((u) => String(u.username).toLowerCase() === user);
   if (!account) return res.status(401).json({ error: 'Credenciais inválidas' });
 
   const ok = await argon2.verify(account.password_hash, password);
   if (!ok) return res.status(401).json({ error: 'Credenciais inválidas' });
 
   if (account.is2fa) {
-    if (!otp) return res.status(401).json({ error: 'OTP obrigatório para Admin Alpha' });
+    if (!otp) return res.status(401).json({ error: 'Confirmação em 2 etapas necessária', code: 'OTP_REQUIRED' });
     const secret = process.env.ADMIN_2FA_SECRET;
     if (!secret) return res.status(500).json({ error: 'ADMIN_2FA_SECRET não configurado no servidor' });
     const valid = speakeasy.totp.verify({ secret, encoding: 'base32', token: otp, window: 1 });
-    if (!valid) return res.status(401).json({ error: 'OTP inválido' });
+    if (!valid) return res.status(401).json({ error: 'Código do Authenticator inválido', code: 'OTP_INVALID' });
   }
 
   const token = jwt.sign(
-    { userId: account.id, role: account.role, username: account.username, columnistId: account.columnistId },
+    { userId: account.id, role: account.role, username: account.username, email: account.username, columnistId: account.columnistId },
     process.env.JWT_SECRET,
     { expiresIn: '8h' }
   );
   res.cookie('session_token', token, { httpOnly: true, secure: true, sameSite: 'lax', maxAge: 8 * 60 * 60 * 1000 });
-  return res.json({ ok: true, role: account.role, columnistId: account.columnistId || null, username: account.username });
+  return res.json({ ok: true, role: account.role, columnistId: account.columnistId || null, username: account.username, email: account.username });
 });
 
 router.get('/me', (req, res) => {

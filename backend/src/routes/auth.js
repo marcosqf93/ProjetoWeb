@@ -3,9 +3,10 @@ import argon2 from 'argon2';
 import jwt from 'jsonwebtoken';
 import speakeasy from 'speakeasy';
 import crypto from 'crypto';
-import { OAuth2Client } from 'google-auth-library';
+import nodemailer from 'nodemailer';
 import { z } from 'zod';
 import { requireAuth } from '../middleware/auth.js';
+import { hasDatabase, pool } from '../db.js';
 
 const router = express.Router();
 
@@ -39,13 +40,20 @@ const registerSchema = z.object({
 const forgotSchema = z.object({ email: z.string().email() });
 const resetSchema = z.object({ token: z.string().min(12), newPassword: z.string().min(8).max(120) });
 const changeSchema = z.object({ currentPassword: z.string().min(3), newPassword: z.string().min(8).max(120) });
-const googleSchema = z.object({ credential: z.string().min(20) });
 
 const usersCache = [];
 const registeredUsers = [];
 const resetTokens = new Map();
 
-const googleClient = process.env.GOOGLE_CLIENT_ID ? new OAuth2Client(process.env.GOOGLE_CLIENT_ID) : null;
+let mailTransporter = null;
+if (process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS) {
+  mailTransporter = nodemailer.createTransport({
+    host: process.env.SMTP_HOST,
+    port: Number(process.env.SMTP_PORT || 587),
+    secure: String(process.env.SMTP_SECURE || 'false') === 'true',
+    auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
+  });
+}
 
 function getRequiredEnv(name) {
   const value = process.env[name];
@@ -68,6 +76,89 @@ function generateColumnistId(name = '', fallback = 'columnist') {
     .replace(/^-+|-+$/g, '')
     .slice(0, 32) || fallback;
   return `${base}-${Math.random().toString(36).slice(2, 7)}`;
+}
+
+function adaptDbUser(row) {
+  if (!row) return null;
+  return {
+    id: Number(row.id),
+    name: row.name,
+    username: normalizeEmail(row.email),
+    password_hash: row.password_hash,
+    role: row.role,
+    columnistId: row.columnist_id || null,
+    is2fa: Boolean(row.is_2fa),
+    provider: row.provider || 'password',
+  };
+}
+
+async function dbFindUserByEmail(email) {
+  if (!hasDatabase || !pool) return null;
+  const result = await pool.query('SELECT * FROM users WHERE email = $1 LIMIT 1', [normalizeEmail(email)]);
+  return adaptDbUser(result.rows[0]);
+}
+
+async function dbCreateUser({ name, email, passwordHash, role, columnistId, is2fa, provider }) {
+  if (!hasDatabase || !pool) return null;
+  const result = await pool.query(
+    `INSERT INTO users (name, email, password_hash, role, columnist_id, is_2fa, provider)
+     VALUES ($1,$2,$3,$4,$5,$6,$7)
+     RETURNING *`,
+    [name, normalizeEmail(email), passwordHash, role, columnistId, is2fa, provider || 'password']
+  );
+  return adaptDbUser(result.rows[0]);
+}
+
+async function dbUpdatePassword(email, passwordHash) {
+  if (!hasDatabase || !pool) return false;
+  await pool.query('UPDATE users SET password_hash = $1, provider = $2, updated_at = NOW() WHERE email = $3', [passwordHash, 'password', normalizeEmail(email)]);
+  return true;
+}
+
+async function dbStoreResetToken(email, rawToken, expiresAt) {
+  if (!hasDatabase || !pool) return false;
+  const tokenHash = await argon2.hash(rawToken);
+  await pool.query(
+    'INSERT INTO password_reset_tokens (token_hash, user_email, expires_at) VALUES ($1,$2,$3)',
+    [tokenHash, normalizeEmail(email), new Date(expiresAt)]
+  );
+  return true;
+}
+
+async function dbConsumeResetToken(rawToken) {
+  if (!hasDatabase || !pool) return null;
+  const rows = await pool.query(
+    `SELECT id, token_hash, user_email, expires_at FROM password_reset_tokens
+     WHERE used_at IS NULL AND expires_at > NOW()
+     ORDER BY created_at DESC LIMIT 20`
+  );
+  for (const row of rows.rows) {
+    const ok = await argon2.verify(row.token_hash, rawToken);
+    if (!ok) continue;
+    await pool.query('UPDATE password_reset_tokens SET used_at = NOW() WHERE id = $1', [row.id]);
+    return normalizeEmail(row.user_email);
+  }
+  return null;
+}
+
+async function sendResetMail(email, token) {
+  if (!mailTransporter) return false;
+  const baseUrl = process.env.RESET_PASSWORD_BASE_URL || process.env.FRONTEND_ORIGIN || '';
+  const safeBase = String(baseUrl || '').replace(/\/$/, '');
+  const resetLink = safeBase ? `${safeBase}/admin.html?reset_token=${encodeURIComponent(token)}` : '';
+
+  await mailTransporter.sendMail({
+    from: process.env.SMTP_FROM || process.env.SMTP_USER,
+    to: email,
+    subject: 'PODBEN - Recuperação de senha',
+    text: resetLink
+      ? `Use este link para redefinir sua senha: ${resetLink}`
+      : `Use este token para redefinir sua senha: ${token}`,
+    html: resetLink
+      ? `<p>Recebemos um pedido para redefinir sua senha.</p><p><a href="${resetLink}">Clique aqui para definir uma nova senha</a></p><p>Se não foi você, ignore este e-mail.</p>`
+      : `<p>Seu token de redefinição é: <strong>${token}</strong></p>`,
+  });
+  return true;
 }
 
 function withRegisteredUsers(defaultUsers = []) {
@@ -106,6 +197,8 @@ async function getUsers() {
 }
 
 async function findUserByEmail(email) {
+  const dbUser = await dbFindUserByEmail(email);
+  if (dbUser) return dbUser;
   const users = await getUsers();
   return users.find((u) => normalizeEmail(u.username) === normalizeEmail(email));
 }
@@ -158,45 +251,6 @@ router.post('/login', async (req, res) => {
   return signSessionAndRespond(res, account);
 });
 
-router.post('/google', async (req, res) => {
-  const parsed = googleSchema.safeParse(req.body);
-  if (!parsed.success) return res.status(400).json({ error: 'Payload inválido para login Google' });
-  if (!googleClient) return res.status(501).json({ error: 'Login Google não configurado no servidor (GOOGLE_CLIENT_ID ausente).' });
-
-  try {
-    const ticket = await googleClient.verifyIdToken({
-      idToken: parsed.data.credential,
-      audience: process.env.GOOGLE_CLIENT_ID,
-    });
-    const payload = ticket.getPayload();
-    const email = normalizeEmail(payload?.email || '');
-    if (!email) return res.status(400).json({ error: 'Conta Google sem e-mail válido.' });
-
-    let account = await findUserByEmail(email);
-    if (account && account.role === 'alpha_admin') {
-      return res.status(403).json({ error: 'Login Google para Alpha Admin não permitido. Use e-mail/senha e 2FA.' });
-    }
-
-    if (!account) {
-      account = {
-        id: Date.now(),
-        name: payload?.name || email.split('@')[0],
-        username: email,
-        role: 'columnist',
-        columnistId: generateColumnistId(payload?.name || email.split('@')[0]),
-        is2fa: false,
-        provider: 'google',
-        password_hash: await argon2.hash(crypto.randomBytes(24).toString('hex')),
-      };
-      registeredUsers.push(account);
-    }
-
-    return signSessionAndRespond(res, account);
-  } catch (_error) {
-    return res.status(401).json({ error: 'Falha ao validar token do Google.' });
-  }
-});
-
 router.post('/register', async (req, res) => {
   const parsed = registerSchema.safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: 'Payload inválido para cadastro.' });
@@ -214,7 +268,8 @@ router.post('/register', async (req, res) => {
   }
 
   if (!['alpha_admin', 'columnist'].includes(role)) role = 'columnist';
-  const newUser = {
+  const passwordHash = await argon2.hash(parsed.data.password);
+  let newUser = {
     id: Date.now(),
     name: parsed.data.name,
     username: email,
@@ -222,10 +277,24 @@ router.post('/register', async (req, res) => {
     columnistId: role === 'columnist' ? generateColumnistId(parsed.data.name) : null,
     is2fa: role === 'alpha_admin',
     provider: 'password',
-    password_hash: await argon2.hash(parsed.data.password),
+    password_hash: passwordHash,
   };
 
-  registeredUsers.push(newUser);
+  if (hasDatabase && pool) {
+    const dbUser = await dbCreateUser({
+      name: parsed.data.name,
+      email,
+      passwordHash,
+      role,
+      columnistId: newUser.columnistId,
+      is2fa: newUser.is2fa,
+      provider: 'password',
+    });
+    if (dbUser) newUser = dbUser;
+  } else {
+    registeredUsers.push(newUser);
+  }
+
   return res.status(201).json({ ok: true, user: { email: newUser.username, role: newUser.role, columnistId: newUser.columnistId } });
 });
 
@@ -238,7 +307,18 @@ router.post('/forgot-password', async (req, res) => {
 
   if (account) {
     const token = crypto.randomBytes(24).toString('hex');
-    resetTokens.set(token, { userId: account.id, expiresAt: Date.now() + 30 * 60 * 1000 });
+    const expiresAt = Date.now() + 30 * 60 * 1000;
+
+    if (hasDatabase && pool) await dbStoreResetToken(email, token, expiresAt);
+    else resetTokens.set(token, { userId: account.id, expiresAt });
+
+    try {
+      const mailSent = await sendResetMail(email, token);
+      if (mailSent) return res.json({ ok: true, message: 'Enviamos um link de redefinição para seu e-mail.' });
+    } catch {
+      // segue fluxo de fallback
+    }
+
     console.log(`[AUTH] Reset token para ${email}: ${token}`);
     if (process.env.NODE_ENV !== 'production') {
       return res.json({ ok: true, message: 'Token de redefinição gerado (ambiente dev).', devToken: token });
@@ -252,19 +332,33 @@ router.post('/reset-password', async (req, res) => {
   const parsed = resetSchema.safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: 'Payload inválido para redefinição.' });
 
-  const tokenData = resetTokens.get(parsed.data.token);
-  if (!tokenData || tokenData.expiresAt < Date.now()) {
+  let targetEmail = null;
+  if (hasDatabase && pool) {
+    targetEmail = await dbConsumeResetToken(parsed.data.token);
+  } else {
+    const tokenData = resetTokens.get(parsed.data.token);
+    if (!tokenData || tokenData.expiresAt < Date.now()) {
+      resetTokens.delete(parsed.data.token);
+      return res.status(400).json({ error: 'Token inválido ou expirado.' });
+    }
+    const users = await getUsers();
+    const account = users.find((u) => u.id === tokenData.userId);
+    targetEmail = account?.username || null;
     resetTokens.delete(parsed.data.token);
-    return res.status(400).json({ error: 'Token inválido ou expirado.' });
   }
 
-  const users = await getUsers();
-  const account = users.find((u) => u.id === tokenData.userId);
-  if (!account) return res.status(404).json({ error: 'Conta não encontrada.' });
+  if (!targetEmail) return res.status(400).json({ error: 'Token inválido ou expirado.' });
 
-  account.password_hash = await argon2.hash(parsed.data.newPassword);
-  account.provider = 'password';
-  resetTokens.delete(parsed.data.token);
+  const passwordHash = await argon2.hash(parsed.data.newPassword);
+  if (hasDatabase && pool) {
+    await dbUpdatePassword(targetEmail, passwordHash);
+  } else {
+    const users = await getUsers();
+    const account = users.find((u) => normalizeEmail(u.username) === normalizeEmail(targetEmail));
+    if (!account) return res.status(404).json({ error: 'Conta não encontrada.' });
+    account.password_hash = passwordHash;
+    account.provider = 'password';
+  }
 
   return res.json({ ok: true, message: 'Senha redefinida com sucesso.' });
 });
@@ -274,13 +368,16 @@ router.post('/change-password', requireAuth, async (req, res) => {
   if (!parsed.success) return res.status(400).json({ error: 'Payload inválido para alterar senha.' });
 
   const users = await getUsers();
-  const account = users.find((u) => u.id === req.user?.userId);
+  const account = users.find((u) => u.id === req.user?.userId) || await findUserByEmail(req.user?.email || '');
   if (!account) return res.status(404).json({ error: 'Conta não encontrada.' });
 
   const valid = await argon2.verify(account.password_hash, parsed.data.currentPassword);
   if (!valid) return res.status(401).json({ error: 'Senha atual incorreta.' });
 
-  account.password_hash = await argon2.hash(parsed.data.newPassword);
+  const passwordHash = await argon2.hash(parsed.data.newPassword);
+  if (hasDatabase && pool) await dbUpdatePassword(account.username, passwordHash);
+  else account.password_hash = passwordHash;
+
   account.provider = 'password';
   return res.json({ ok: true, message: 'Senha atualizada com sucesso.' });
 });

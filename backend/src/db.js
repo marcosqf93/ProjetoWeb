@@ -51,10 +51,13 @@ export async function initDb() {
       columnist_id TEXT,
       is_2fa BOOLEAN NOT NULL DEFAULT FALSE,
       provider TEXT NOT NULL DEFAULT 'password',
+      photo_url TEXT,
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
       updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     );
   `);
+
+  await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS photo_url TEXT;`);
 
   await pool.query(`
     CREATE TABLE IF NOT EXISTS password_reset_tokens (

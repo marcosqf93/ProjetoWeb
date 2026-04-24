@@ -40,6 +40,11 @@ const registerSchema = z.object({
 const forgotSchema = z.object({ email: z.string().email() });
 const resetSchema = z.object({ token: z.string().min(12), newPassword: z.string().min(8).max(120) });
 const changeSchema = z.object({ currentPassword: z.string().min(3), newPassword: z.string().min(8).max(120) });
+const profileSchema = z.object({
+  name: z.string().min(2).max(120),
+  email: z.string().email(),
+  photoUrl: z.string().url().optional().or(z.literal('')),
+});
 
 const usersCache = [];
 const registeredUsers = [];
@@ -89,6 +94,7 @@ function adaptDbUser(row) {
     columnistId: row.columnist_id || null,
     is2fa: Boolean(row.is_2fa),
     provider: row.provider || 'password',
+    photoUrl: row.photo_url || '',
   };
 }
 
@@ -98,13 +104,25 @@ async function dbFindUserByEmail(email) {
   return adaptDbUser(result.rows[0]);
 }
 
-async function dbCreateUser({ name, email, passwordHash, role, columnistId, is2fa, provider }) {
+async function dbCreateUser({ name, email, passwordHash, role, columnistId, is2fa, provider, photoUrl = '' }) {
   if (!hasDatabase || !pool) return null;
   const result = await pool.query(
-    `INSERT INTO users (name, email, password_hash, role, columnist_id, is_2fa, provider)
-     VALUES ($1,$2,$3,$4,$5,$6,$7)
+    `INSERT INTO users (name, email, password_hash, role, columnist_id, is_2fa, provider, photo_url)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
      RETURNING *`,
-    [name, normalizeEmail(email), passwordHash, role, columnistId, is2fa, provider || 'password']
+    [name, normalizeEmail(email), passwordHash, role, columnistId, is2fa, provider || 'password', photoUrl]
+  );
+  return adaptDbUser(result.rows[0]);
+}
+
+async function dbUpdateProfile(userId, { name, email, photoUrl }) {
+  if (!hasDatabase || !pool) return null;
+  const result = await pool.query(
+    `UPDATE users
+     SET name = $1, email = $2, photo_url = $3, updated_at = NOW()
+     WHERE id = $4
+     RETURNING *`,
+    [name, normalizeEmail(email), photoUrl || '', userId]
   );
   return adaptDbUser(result.rows[0]);
 }
@@ -217,6 +235,7 @@ function signSessionAndRespond(res, account) {
     username: account.username,
     email: account.username,
     name: account.name || '',
+    photoUrl: account.photoUrl || '',
   });
 }
 
@@ -278,6 +297,7 @@ router.post('/register', async (req, res) => {
     is2fa: role === 'alpha_admin',
     provider: 'password',
     password_hash: passwordHash,
+    photoUrl: '',
   };
 
   if (hasDatabase && pool) {
@@ -289,6 +309,7 @@ router.post('/register', async (req, res) => {
       columnistId: newUser.columnistId,
       is2fa: newUser.is2fa,
       provider: 'password',
+      photoUrl: '',
     });
     if (dbUser) newUser = dbUser;
   } else {
@@ -380,6 +401,38 @@ router.post('/change-password', requireAuth, async (req, res) => {
 
   account.provider = 'password';
   return res.json({ ok: true, message: 'Senha atualizada com sucesso.' });
+});
+
+router.put('/profile', requireAuth, async (req, res) => {
+  const parsed = profileSchema.safeParse(req.body);
+  if (!parsed.success) return res.status(400).json({ error: 'Dados de perfil inválidos.' });
+
+  const users = await getUsers();
+  const sessionUserId = Number(req.user?.userId);
+  const currentUser = users.find((u) => Number(u.id) === sessionUserId);
+  if (!currentUser) return res.status(404).json({ error: 'Usuário não encontrado.' });
+
+  const newEmail = normalizeEmail(parsed.data.email);
+  const alreadyInUse = await findUserByEmail(newEmail);
+  if (alreadyInUse && Number(alreadyInUse.id) !== sessionUserId) {
+    return res.status(409).json({ error: 'Este e-mail já está em uso por outra conta.' });
+  }
+
+  let updatedUser = null;
+  if (hasDatabase && pool && sessionUserId > 3) {
+    updatedUser = await dbUpdateProfile(sessionUserId, {
+      name: parsed.data.name,
+      email: newEmail,
+      photoUrl: parsed.data.photoUrl || '',
+    });
+  } else {
+    currentUser.name = parsed.data.name;
+    currentUser.username = newEmail;
+    currentUser.photoUrl = parsed.data.photoUrl || '';
+    updatedUser = currentUser;
+  }
+
+  return signSessionAndRespond(res, updatedUser || currentUser);
 });
 
 router.get('/me', (req, res) => {

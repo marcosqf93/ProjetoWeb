@@ -4,6 +4,8 @@ import jwt from 'jsonwebtoken';
 import speakeasy from 'speakeasy';
 import crypto from 'crypto';
 import nodemailer from 'nodemailer';
+import path from 'path';
+import { promises as fs } from 'fs';
 import { z } from 'zod';
 import { requireAuth } from '../middleware/auth.js';
 import { hasDatabase, pool } from '../db.js';
@@ -55,6 +57,21 @@ function isValidProfilePhoto(value) {
   } catch {
     return false;
   }
+}
+
+async function storeProfilePhotoDataUrl(photoUrl, req, userId) {
+  const raw = String(photoUrl || '').trim();
+  if (!dataImagePrefix.test(raw)) return raw;
+  const match = raw.match(/^data:image\/(png|jpe?g|webp|gif);base64,(.+)$/i);
+  if (!match) return '';
+  const ext = match[1].toLowerCase() === 'jpeg' ? 'jpg' : match[1].toLowerCase();
+  const buffer = Buffer.from(match[2], 'base64');
+  const uploadsDir = path.resolve(process.cwd(), 'backend', 'uploads', 'profiles');
+  await fs.mkdir(uploadsDir, { recursive: true });
+  const fileName = `user-${Number(userId) || 'x'}-${Date.now()}.${ext}`;
+  await fs.writeFile(path.join(uploadsDir, fileName), buffer);
+  const baseUrl = `${req.protocol}://${req.get('host')}`;
+  return `${baseUrl}/uploads/profiles/${fileName}`;
 }
 
 const profileSchema = z.object({
@@ -459,11 +476,12 @@ router.put('/profile', requireAuth, async (req, res) => {
   }
 
   let updatedUser = null;
+  const normalizedPhotoUrl = await storeProfilePhotoDataUrl(parsed.data.photoUrl || '', req, sessionUserId);
   if (hasDatabase && pool) {
     updatedUser = await dbUpsertProfileByEmail(currentUser.username, {
       name: parsed.data.name,
       email: newEmail,
-      photoUrl: parsed.data.photoUrl || '',
+      photoUrl: normalizedPhotoUrl,
       role: currentUser.role,
       columnistId: currentUser.columnistId,
       is2fa: currentUser.is2fa,
@@ -473,7 +491,7 @@ router.put('/profile', requireAuth, async (req, res) => {
   } else {
     currentUser.name = parsed.data.name;
     currentUser.username = newEmail;
-    currentUser.photoUrl = parsed.data.photoUrl || '';
+    currentUser.photoUrl = normalizedPhotoUrl;
     updatedUser = currentUser;
   }
 

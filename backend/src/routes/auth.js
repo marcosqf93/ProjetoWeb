@@ -40,10 +40,35 @@ const registerSchema = z.object({
 const forgotSchema = z.object({ email: z.string().email() });
 const resetSchema = z.object({ token: z.string().min(12), newPassword: z.string().min(8).max(120) });
 const changeSchema = z.object({ currentPassword: z.string().min(3), newPassword: z.string().min(8).max(120) });
+const MAX_PROFILE_PHOTO_LENGTH = 900000;
+const dataImagePrefix = /^data:image\/(png|jpe?g|webp|gif);base64,/i;
+
+function isValidProfilePhoto(value) {
+  if (!value) return true;
+  const normalized = String(value).trim();
+  if (!normalized) return true;
+  if (normalized.length > MAX_PROFILE_PHOTO_LENGTH) return false;
+  if (dataImagePrefix.test(normalized)) return true;
+  try {
+    const parsed = new URL(normalized);
+    return parsed.protocol === 'http:' || parsed.protocol === 'https:';
+  } catch {
+    return false;
+  }
+}
+
 const profileSchema = z.object({
   name: z.string().min(2).max(120),
   email: z.string().email(),
-  photoUrl: z.string().url().optional().or(z.literal('')),
+  photoUrl: z.string().optional().or(z.literal('')),
+}).superRefine((value, ctx) => {
+  if (!isValidProfilePhoto(value.photoUrl)) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['photoUrl'],
+      message: 'Foto de perfil inválida. Use URL http(s) ou upload de imagem.',
+    });
+  }
 });
 
 const usersCache = [];

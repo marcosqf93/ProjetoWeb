@@ -4,12 +4,16 @@ import cookieParser from 'cookie-parser';
 import rateLimit from 'express-rate-limit';
 import cors from 'cors';
 import sanitizeHtml from 'sanitize-html';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import authRoutes from './routes/auth.js';
 import newsRoutes from './routes/news.js';
 import publicRoutes from './routes/public.js';
 import { hasDatabase, initDb } from './db.js';
 
 const app = express();
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const allowedOrigins = [
   process.env.FRONTEND_ORIGIN,
@@ -30,6 +34,7 @@ app.use(cors({
 }));
 app.use(express.json({ limit: '1mb' }));
 app.use(cookieParser());
+app.use('/uploads', express.static(path.resolve(__dirname, '..', 'uploads')));
 
 const globalLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 300, standardHeaders: true, legacyHeaders: false });
 const loginLimiter = rateLimit({

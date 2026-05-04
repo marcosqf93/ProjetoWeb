@@ -74,6 +74,24 @@ async function storeProfilePhotoDataUrl(photoUrl, req, userId) {
   return `${baseUrl}/uploads/profiles/${fileName}`;
 }
 
+async function storeMediaDataUrl(fileDataUrl, req, folder = 'gallery') {
+  const raw = String(fileDataUrl || '').trim();
+  const match = raw.match(/^data:(image\/(png|jpe?g|webp|gif)|video\/(mp4|webm|ogg));base64,(.+)$/i);
+  if (!match) return null;
+  const mime = match[1].toLowerCase();
+  const ext = (mime.split('/')[1] || 'bin').replace('jpeg', 'jpg');
+  const body = match[4];
+  const buffer = Buffer.from(body, 'base64');
+  const maxBytes = mime.startsWith('image/') ? 8 * 1024 * 1024 : 40 * 1024 * 1024;
+  if (buffer.length > maxBytes) return null;
+  const uploadsDir = path.resolve(process.cwd(), 'backend', 'uploads', folder);
+  await fs.mkdir(uploadsDir, { recursive: true });
+  const fileName = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+  await fs.writeFile(path.join(uploadsDir, fileName), buffer);
+  const baseUrl = `${req.protocol}://${req.get('host')}`;
+  return { url: `${baseUrl}/uploads/${folder}/${fileName}`, mime };
+}
+
 const profileSchema = z.object({
   name: z.string().min(2).max(120),
   email: z.string().email(),
@@ -496,6 +514,13 @@ router.put('/profile', requireAuth, async (req, res) => {
   }
 
   return signSessionAndRespond(res, updatedUser || currentUser);
+});
+
+router.post('/upload-media', requireAuth, async (req, res) => {
+  const payload = req.body || {};
+  const stored = await storeMediaDataUrl(payload.fileDataUrl, req, 'gallery');
+  if (!stored) return res.status(400).json({ error: 'Arquivo inválido. Envie imagem/vídeo compatível.' });
+  return res.json({ ok: true, url: stored.url, mime: stored.mime });
 });
 
 router.get('/me', (req, res) => {

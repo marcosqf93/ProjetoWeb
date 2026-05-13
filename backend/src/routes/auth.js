@@ -411,7 +411,9 @@ router.post('/forgot-password', async (req, res) => {
     if (hasDatabase && pool) await dbStoreResetToken(email, token, expiresAt);
     else resetTokens.set(token, { userId: account.id, expiresAt });
 
-    sendResetMail(email, token).catch(() => {});
+    sendResetMail(email, token).catch((err) => {
+      console.error(`[AUTH] Falha ao enviar email para ${email}:`, err?.message || err);
+    });
     console.log(`[AUTH] Reset token para ${email}: ${token}`);
     if (process.env.NODE_ENV !== 'production') {
       return res.json({ ok: true, message: 'Token de redefinição gerado (ambiente dev).', devToken: token });

@@ -117,6 +117,9 @@ if (process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS) {
     port: Number(process.env.SMTP_PORT || 587),
     secure: String(process.env.SMTP_SECURE || 'false') === 'true',
     auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
+    connectionTimeout: 10000,
+    greetingTimeout: 10000,
+    socketTimeout: 15000,
   });
 }
 
@@ -408,13 +411,7 @@ router.post('/forgot-password', async (req, res) => {
     if (hasDatabase && pool) await dbStoreResetToken(email, token, expiresAt);
     else resetTokens.set(token, { userId: account.id, expiresAt });
 
-    try {
-      const mailSent = await sendResetMail(email, token);
-      if (mailSent) return res.json({ ok: true, message: 'Enviamos um link de redefinição para seu e-mail.' });
-    } catch {
-      // segue fluxo de fallback
-    }
-
+    sendResetMail(email, token).catch(() => {});
     console.log(`[AUTH] Reset token para ${email}: ${token}`);
     if (process.env.NODE_ENV !== 'production') {
       return res.json({ ok: true, message: 'Token de redefinição gerado (ambiente dev).', devToken: token });

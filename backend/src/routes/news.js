@@ -96,4 +96,26 @@ router.delete('/:id', requireAuth, requireRole('alpha_admin'), async (req, res) 
   return res.json({ ok: true });
 });
 
+router.delete('/', requireAuth, requireRole('alpha_admin'), async (_req, res) => {
+  if (!assertDb(res)) return;
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    try {
+      await client.query('DELETE FROM news_comments');
+    } catch {}
+    try {
+      await client.query('DELETE FROM comments WHERE news_id IS NOT NULL');
+    } catch {}
+    const result = await client.query('DELETE FROM news');
+    await client.query('COMMIT');
+    return res.json({ ok: true, deletedNews: result.rowCount || 0 });
+  } catch (error) {
+    await client.query('ROLLBACK');
+    return res.status(500).json({ error: 'Falha ao limpar notícias.', detail: error.message });
+  } finally {
+    client.release();
+  }
+});
+
 export default router;

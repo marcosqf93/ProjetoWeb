@@ -70,7 +70,7 @@ async function storeProfilePhotoDataUrl(photoUrl, req, userId) {
   await fs.mkdir(uploadsDir, { recursive: true });
   const fileName = `user-${Number(userId) || 'x'}-${Date.now()}.${ext}`;
   await fs.writeFile(path.join(uploadsDir, fileName), buffer);
-  const baseUrl = `${req.protocol}://${req.get('host')}`;
+  const baseUrl = getPublicBaseUrl(req);
   return `${baseUrl}/uploads/profiles/${fileName}`;
 }
 
@@ -88,8 +88,17 @@ async function storeMediaDataUrl(fileDataUrl, req, folder = 'gallery') {
   await fs.mkdir(uploadsDir, { recursive: true });
   const fileName = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
   await fs.writeFile(path.join(uploadsDir, fileName), buffer);
-  const baseUrl = `${req.protocol}://${req.get('host')}`;
+  const baseUrl = getPublicBaseUrl(req);
   return { url: `${baseUrl}/uploads/${folder}/${fileName}`, mime };
+}
+
+function getPublicBaseUrl(req) {
+  const envUrl = String(process.env.BACKEND_PUBLIC_URL || '').trim().replace(/\/+$/, '');
+  if (envUrl) return envUrl;
+  const forwardedProto = String(req.headers['x-forwarded-proto'] || '').split(',')[0].trim();
+  const proto = forwardedProto || req.protocol || 'https';
+  const host = String(req.headers['x-forwarded-host'] || req.get('host') || '').split(',')[0].trim();
+  return `${proto}://${host}`;
 }
 
 const profileSchema = z.object({
@@ -201,6 +210,34 @@ async function dbUpsertProfileByEmail(currentEmail, { name, email, photoUrl, rol
      WHERE id = $4
      RETURNING *`,
     [name, normalizeEmail(email), photoUrl || '', userId]
+  );
+  return adaptDbUser(result.rows[0]);
+}
+
+async function dbUpsertProfileById(userId, { name, email, photoUrl, role, columnistId, is2fa, provider, passwordHash }) {
+  if (!hasDatabase || !pool) return null;
+  const normalizedId = Number(userId);
+  if (!Number.isInteger(normalizedId) || normalizedId <= 0) return null;
+  const lookup = await pool.query('SELECT id FROM users WHERE id = $1 LIMIT 1', [normalizedId]);
+  if (!lookup.rows.length) {
+    const created = await dbCreateUser({
+      name,
+      email,
+      passwordHash,
+      role,
+      columnistId: columnistId || null,
+      is2fa: Boolean(is2fa),
+      provider: provider || 'password',
+      photoUrl: photoUrl || '',
+    });
+    return created;
+  }
+  const result = await pool.query(
+    `UPDATE users
+     SET name = $1, email = $2, photo_url = $3, updated_at = NOW()
+     WHERE id = $4
+     RETURNING *`,
+    [name, normalizeEmail(email), photoUrl || '', normalizedId]
   );
   return adaptDbUser(result.rows[0]);
 }
@@ -413,7 +450,7 @@ router.post('/forgot-password', async (req, res) => {
 
     const mailResult = await Promise.race([
       sendResetMail(email, token).then(() => 'sent'),
-      new Promise(resolve => setTimeout(() => resolve('timeout'), 3000))
+      new Promise(resolve => setTimeout(() => resolve('timeout'), 4000))
     ]);
 
     if (mailResult === 'sent') {
@@ -424,10 +461,9 @@ router.post('/forgot-password', async (req, res) => {
       console.error(`[AUTH] Falha ao enviar email para ${email}:`, err?.message || err);
     });
     console.log(`[AUTH] Reset token para ${email}: ${token}`);
-    return res.json({ ok: true, message: 'E-mail temporariamente indisponível. Use o token abaixo.', devToken: token });
   }
 
-  return res.json({ ok: true, message: 'Se o e-mail existir, você receberá instruções de redefinição.' });
+  return res.json({ ok: true, message: 'Token de recuperação gerado. Admin: verifique os logs do Render.' });
 });
 
 router.post('/reset-password', async (req, res) => {
@@ -488,9 +524,12 @@ router.put('/profile', requireAuth, async (req, res) => {
   const parsed = profileSchema.safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: 'Dados de perfil inválidos.' });
 
-  const users = await getUsers();
   const sessionUserId = Number(req.user?.userId);
-  const currentUser = users.find((u) => Number(u.id) === sessionUserId);
+  const users = await getUsers();
+  let currentUser = users.find((u) => Number(u.id) === sessionUserId);
+  if (!currentUser && req.user?.email) {
+    currentUser = await findUserByEmail(req.user.email);
+  }
   if (!currentUser) return res.status(404).json({ error: 'Usuário não encontrado.' });
 
   const newEmail = normalizeEmail(parsed.data.email);
@@ -502,7 +541,7 @@ router.put('/profile', requireAuth, async (req, res) => {
   let updatedUser = null;
   const normalizedPhotoUrl = await storeProfilePhotoDataUrl(parsed.data.photoUrl || '', req, sessionUserId);
   if (hasDatabase && pool) {
-    updatedUser = await dbUpsertProfileByEmail(currentUser.username, {
+    updatedUser = await dbUpsertProfileById(sessionUserId || currentUser.id, {
       name: parsed.data.name,
       email: newEmail,
       photoUrl: normalizedPhotoUrl,

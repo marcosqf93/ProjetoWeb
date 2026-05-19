@@ -66,7 +66,7 @@ async function storeProfilePhotoDataUrl(photoUrl, req, userId) {
   if (!match) return '';
   const ext = match[1].toLowerCase() === 'jpeg' ? 'jpg' : match[1].toLowerCase();
   const buffer = Buffer.from(match[2], 'base64');
-  const uploadsDir = path.resolve(process.cwd(), 'backend', 'uploads', 'profiles');
+  const uploadsDir = path.resolve(process.cwd(), 'uploads', 'profiles');
   await fs.mkdir(uploadsDir, { recursive: true });
   const fileName = `user-${Number(userId) || 'x'}-${Date.now()}.${ext}`;
   await fs.writeFile(path.join(uploadsDir, fileName), buffer);
@@ -84,7 +84,7 @@ async function storeMediaDataUrl(fileDataUrl, req, folder = 'gallery') {
   const buffer = Buffer.from(body, 'base64');
   const maxBytes = mime.startsWith('image/') ? 8 * 1024 * 1024 : 40 * 1024 * 1024;
   if (buffer.length > maxBytes) return null;
-  const uploadsDir = path.resolve(process.cwd(), 'backend', 'uploads', folder);
+  const uploadsDir = path.resolve(process.cwd(), 'uploads', folder);
   await fs.mkdir(uploadsDir, { recursive: true });
   const fileName = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
   await fs.writeFile(path.join(uploadsDir, fileName), buffer);

@@ -191,17 +191,45 @@ async function dbUpsertProfileByEmail(currentEmail, { name, email, photoUrl, rol
   if (!hasDatabase || !pool) return null;
   const lookup = await pool.query('SELECT id FROM users WHERE email = $1 LIMIT 1', [normalizeEmail(currentEmail)]);
   if (!lookup.rows.length) {
-    const created = await dbCreateUser({
-      name,
-      email,
-      passwordHash,
-      role,
-      columnistId: columnistId || null,
-      is2fa: Boolean(is2fa),
-      provider: provider || 'password',
-      photoUrl: photoUrl || '',
-    });
-    return created;
+    const byNewEmail = await pool.query('SELECT id FROM users WHERE email = $1 LIMIT 1', [normalizeEmail(email)]);
+    if (byNewEmail.rows.length) {
+      const result = await pool.query(
+        `UPDATE users
+         SET name = $1, email = $2, photo_url = $3, updated_at = NOW()
+         WHERE id = $4
+         RETURNING *`,
+        [name, normalizeEmail(email), photoUrl || '', byNewEmail.rows[0].id]
+      );
+      return adaptDbUser(result.rows[0]);
+    }
+    try {
+      const created = await dbCreateUser({
+        name,
+        email,
+        passwordHash,
+        role,
+        columnistId: columnistId || null,
+        is2fa: Boolean(is2fa),
+        provider: provider || 'password',
+        photoUrl: photoUrl || '',
+      });
+      return created;
+    } catch (error) {
+      if (String(error?.code || '') === '23505') {
+        const existing = await pool.query('SELECT id FROM users WHERE email = $1 LIMIT 1', [normalizeEmail(email)]);
+        if (existing.rows.length) {
+          const result = await pool.query(
+            `UPDATE users
+             SET name = $1, email = $2, photo_url = $3, updated_at = NOW()
+             WHERE id = $4
+             RETURNING *`,
+            [name, normalizeEmail(email), photoUrl || '', existing.rows[0].id]
+          );
+          return adaptDbUser(result.rows[0]);
+        }
+      }
+      throw error;
+    }
   }
   const userId = lookup.rows[0].id;
   const result = await pool.query(

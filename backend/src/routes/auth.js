@@ -4,6 +4,7 @@ import jwt from 'jsonwebtoken';
 import speakeasy from 'speakeasy';
 import crypto from 'crypto';
 import nodemailer from 'nodemailer';
+import { v2 as cloudinary } from 'cloudinary';
 import path from 'path';
 import { promises as fs } from 'fs';
 import { z } from 'zod';
@@ -45,6 +46,33 @@ const changeSchema = z.object({ currentPassword: z.string().min(3), newPassword:
 const MAX_PROFILE_PHOTO_LENGTH = 900000;
 const dataImagePrefix = /^data:image\/(png|jpe?g|webp|gif);base64,/i;
 
+const hasCloudinaryConfig = Boolean(
+  process.env.CLOUDINARY_CLOUD_NAME
+  && process.env.CLOUDINARY_API_KEY
+  && process.env.CLOUDINARY_API_SECRET
+);
+
+if (hasCloudinaryConfig) {
+  cloudinary.config({
+    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+    api_key: process.env.CLOUDINARY_API_KEY,
+    api_secret: process.env.CLOUDINARY_API_SECRET,
+    secure: true,
+  });
+}
+
+function uploadBufferToCloudinary(buffer, { folder, publicId, resourceType = 'image' }) {
+  return new Promise((resolve, reject) => {
+    cloudinary.uploader.upload_stream(
+      { folder, public_id: publicId, resource_type: resourceType, overwrite: true },
+      (error, result) => {
+        if (error) return reject(error);
+        return resolve(result?.secure_url || result?.url || '');
+      }
+    ).end(buffer);
+  });
+}
+
 function isValidProfilePhoto(value) {
   if (!value) return true;
   const normalized = String(value).trim();
@@ -64,8 +92,16 @@ async function storeProfilePhotoDataUrl(photoUrl, req, userId) {
   if (!dataImagePrefix.test(raw)) return raw;
   const match = raw.match(/^data:image\/(png|jpe?g|webp|gif);base64,(.+)$/i);
   if (!match) return '';
-  const ext = match[1].toLowerCase() === 'jpeg' ? 'jpg' : match[1].toLowerCase();
   const buffer = Buffer.from(match[2], 'base64');
+  if (hasCloudinaryConfig) {
+    const cloudUrl = await uploadBufferToCloudinary(buffer, {
+      folder: process.env.CLOUDINARY_PROFILE_FOLDER || 'podben/profiles',
+      publicId: `user-${Number(userId) || 'x'}-${Date.now()}`,
+      resourceType: 'image',
+    });
+    if (cloudUrl) return cloudUrl;
+  }
+  const ext = match[1].toLowerCase() === 'jpeg' ? 'jpg' : match[1].toLowerCase();
   const uploadsDir = path.resolve(process.cwd(), 'uploads', 'profiles');
   await fs.mkdir(uploadsDir, { recursive: true });
   const fileName = `user-${Number(userId) || 'x'}-${Date.now()}.${ext}`;
@@ -84,6 +120,14 @@ async function storeMediaDataUrl(fileDataUrl, req, folder = 'gallery') {
   const buffer = Buffer.from(body, 'base64');
   const maxBytes = mime.startsWith('image/') ? 8 * 1024 * 1024 : 40 * 1024 * 1024;
   if (buffer.length > maxBytes) return null;
+  if (hasCloudinaryConfig) {
+    const cloudUrl = await uploadBufferToCloudinary(buffer, {
+      folder: process.env.CLOUDINARY_MEDIA_FOLDER || `podben/${folder}`,
+      publicId: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      resourceType: mime.startsWith('video/') ? 'video' : 'image',
+    });
+    if (cloudUrl) return { url: cloudUrl, mime };
+  }
   const uploadsDir = path.resolve(process.cwd(), 'uploads', folder);
   await fs.mkdir(uploadsDir, { recursive: true });
   const fileName = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;

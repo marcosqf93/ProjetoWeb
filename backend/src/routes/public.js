@@ -49,4 +49,22 @@ router.get('/prayer', async (_req, res) => {
   return res.json({ items: rows.map(mapPrayer) });
 });
 
+router.get('/columnists', async (_req, res) => {
+  if (!assertDb(res)) return;
+  const { rows } = await pool.query(
+    "SELECT id, name, email, columnist_id, photo_url, created_at FROM users WHERE role = 'columnist' ORDER BY created_at DESC"
+  );
+  return res.json({
+    items: rows.map((r) => ({
+      id: r.columnist_id || String(r.id),
+      dbId: Number(r.id),
+      name: r.name,
+      email: r.email,
+      photo: r.photo_url || '',
+      bio: '',
+      createdAt: r.created_at,
+    })),
+  });
+});
+
 export default router;

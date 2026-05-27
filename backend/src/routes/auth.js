@@ -577,8 +577,11 @@ router.post('/change-password', requireAuth, async (req, res) => {
   const parsed = changeSchema.safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: 'Payload inválido para alterar senha.' });
 
-  const users = await getUsers();
-  const account = users.find((u) => u.id === req.user?.userId) || await findUserByEmail(req.user?.email || '');
+  let account = await findUserByEmail(req.user?.email || '');
+  if (!account && hasDatabase && pool) {
+    const result = await pool.query('SELECT * FROM users WHERE id = $1 LIMIT 1', [Number(req.user?.userId)]);
+    account = adaptDbUser(result.rows[0]);
+  }
   if (!account) return res.status(404).json({ error: 'Conta não encontrada.' });
 
   const valid = await argon2.verify(account.password_hash, parsed.data.currentPassword);
@@ -597,10 +600,10 @@ router.put('/profile', requireAuth, async (req, res) => {
   if (!parsed.success) return res.status(400).json({ error: 'Dados de perfil inválidos.' });
 
   const sessionUserId = Number(req.user?.userId);
-  const users = await getUsers();
-  let currentUser = users.find((u) => Number(u.id) === sessionUserId);
-  if (!currentUser && req.user?.email) {
-    currentUser = await findUserByEmail(req.user.email);
+  let currentUser = await findUserByEmail(req.user?.email || '');
+  if (!currentUser && sessionUserId && hasDatabase && pool) {
+    const result = await pool.query('SELECT * FROM users WHERE id = $1 LIMIT 1', [sessionUserId]);
+    currentUser = adaptDbUser(result.rows[0]);
   }
   if (!currentUser) return res.status(404).json({ error: 'Usuário não encontrado.' });
 

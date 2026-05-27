@@ -9,6 +9,7 @@ import path from 'path';
 import { promises as fs } from 'fs';
 import { z } from 'zod';
 import { requireAuth } from '../middleware/auth.js';
+import { requireRole } from '../middleware/rbac.js';
 import { hasDatabase, pool } from '../db.js';
 
 const router = express.Router();
@@ -657,6 +658,80 @@ router.get('/me', (req, res) => {
 router.post('/logout', (_req, res) => {
   res.clearCookie('session_token');
   res.json({ ok: true });
+});
+
+const createColumnistSchema = z.object({
+  name: z.string().min(2).max(120),
+  email: z.string().email(),
+  password: z.string().min(8).max(120),
+  photoUrl: z.string().optional().or(z.literal('')),
+});
+
+router.get('/users', requireAuth, requireRole('alpha_admin'), async (_req, res) => {
+  if (!hasDatabase || !pool) return res.status(503).json({ error: 'Banco de dados não configurado' });
+  const { rows } = await pool.query('SELECT id, name, email, role, columnist_id, photo_url, created_at FROM users ORDER BY created_at DESC');
+  return res.json({
+    items: rows.map((r) => ({
+      id: Number(r.id),
+      name: r.name,
+      email: r.email,
+      role: r.role,
+      columnistId: r.columnist_id || null,
+      photoUrl: r.photo_url || '',
+      createdAt: r.created_at,
+    })),
+  });
+});
+
+router.post('/users', requireAuth, requireRole('alpha_admin'), async (req, res) => {
+  const parsed = createColumnistSchema.safeParse(req.body);
+  if (!parsed.success) return res.status(400).json({ error: 'Dados inválidos.', detail: parsed.error.flatten() });
+
+  const email = normalizeEmail(parsed.data.email);
+  const exists = await findUserByEmail(email);
+  if (exists) return res.status(409).json({ error: 'Já existe uma conta com este e-mail.' });
+
+  const passwordHash = await argon2.hash(parsed.data.password);
+  const columnistId = generateColumnistId(parsed.data.name);
+  let normalizedPhoto = '';
+  if (parsed.data.photoUrl) {
+    normalizedPhoto = await storeProfilePhotoDataUrl(parsed.data.photoUrl, res.req, 0);
+  }
+
+  const dbUser = await dbCreateUser({
+    name: parsed.data.name,
+    email,
+    passwordHash,
+    role: 'columnist',
+    columnistId,
+    is2fa: false,
+    provider: 'password',
+    photoUrl: normalizedPhoto,
+  });
+
+  if (!dbUser) return res.status(500).json({ error: 'Falha ao criar colunista.' });
+  return res.status(201).json({
+    ok: true,
+    item: {
+      id: dbUser.id,
+      name: dbUser.name,
+      email: dbUser.username,
+      role: dbUser.role,
+      columnistId: dbUser.columnistId,
+      photoUrl: dbUser.photoUrl || '',
+    },
+  });
+});
+
+router.delete('/users/:id', requireAuth, requireRole('alpha_admin'), async (req, res) => {
+  if (!hasDatabase || !pool) return res.status(503).json({ error: 'Banco de dados não configurado' });
+  const id = Number(req.params.id);
+  if (!Number.isInteger(id) || id <= 0) return res.status(400).json({ error: 'ID inválido' });
+  const sessionUserId = Number(req.user?.userId);
+  if (id === sessionUserId) return res.status(400).json({ error: 'Não é possível excluir seu próprio usuário.' });
+  const result = await pool.query('DELETE FROM users WHERE id = $1', [id]);
+  if (!result.rowCount) return res.status(404).json({ error: 'Usuário não encontrado' });
+  return res.json({ ok: true });
 });
 
 export default router;

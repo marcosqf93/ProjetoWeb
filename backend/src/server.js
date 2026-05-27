@@ -8,6 +8,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import authRoutes from './routes/auth.js';
 import newsRoutes from './routes/news.js';
+import studiesRoutes from './routes/studies.js';
 import publicRoutes from './routes/public.js';
 import { hasDatabase, initDb } from './db.js';
 
@@ -51,6 +52,7 @@ app.use(globalLimiter);
 app.use('/auth/login', loginLimiter);
 app.use('/auth', authRoutes);
 app.use('/news', newsRoutes);
+app.use('/studies', studiesRoutes);
 app.use('/public', publicRoutes);
 
 app.post('/sanitize-preview', (req, res) => {

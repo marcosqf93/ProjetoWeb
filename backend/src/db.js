@@ -60,6 +60,22 @@ export async function initDb() {
   await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS photo_url TEXT;`);
 
   await pool.query(`
+    CREATE TABLE IF NOT EXISTS studies (
+      id BIGSERIAL PRIMARY KEY,
+      title TEXT NOT NULL,
+      category TEXT NOT NULL,
+      bio TEXT NOT NULL DEFAULT '',
+      content TEXT NOT NULL DEFAULT '',
+      cover TEXT NOT NULL DEFAULT '',
+      pdf TEXT NOT NULL DEFAULT '',
+      author TEXT NOT NULL DEFAULT 'PODBEN',
+      status TEXT NOT NULL DEFAULT 'published' CHECK (status IN ('published','draft')),
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+  `);
+
+  await pool.query(`
     CREATE TABLE IF NOT EXISTS password_reset_tokens (
       id BIGSERIAL PRIMARY KEY,
       token_hash TEXT NOT NULL UNIQUE,

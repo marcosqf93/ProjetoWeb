@@ -1,5 +1,6 @@
 import express from 'express';
 import { pool } from '../db.js';
+import { sendNewCommentEmail } from '../utils/mailer.js';
 
 const router = express.Router();
 
@@ -55,6 +56,20 @@ router.post('/', async (req, res) => {
      VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
     [context, Number(contextId), trimmedName, trimmedPhoto, trimmedUsername, trimmedToken, trimmedContent]
   );
+
+  let pageTitle = '';
+  try {
+    if (context === 'news') {
+      const { rows: newsRows } = await pool.query('SELECT title FROM news WHERE id = $1', [Number(contextId)]);
+      if (newsRows.length) pageTitle = newsRows[0].title;
+    } else {
+      const { rows: colRows } = await pool.query('SELECT title FROM columns WHERE id = $1', [Number(contextId)]);
+      if (colRows.length) pageTitle = colRows[0].title;
+    }
+  } catch (_err) {}
+
+  sendNewCommentEmail({ context, contextId: Number(contextId), authorName: trimmedName, content: trimmedContent, pageTitle }).catch(() => {});
+
   return res.status(201).json({ item: mapComment(rows[0]) });
 });
 

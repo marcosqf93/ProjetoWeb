@@ -1,5 +1,6 @@
 import express from 'express';
 import { pool } from '../db.js';
+import { sendPrayerEmail } from '../utils/mailer.js';
 
 const router = express.Router();
 
@@ -40,6 +41,7 @@ router.post('/prayer', async (req, res) => {
   }
 
   await pool.query('INSERT INTO prayer_requests (nome, celular, mensagem) VALUES ($1, $2, $3)', [nome, celular, mensagem]);
+  sendPrayerEmail({ nome, celular, mensagem }).catch(() => {});
   return res.status(201).json({ ok: true });
 });
 

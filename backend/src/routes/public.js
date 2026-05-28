@@ -52,7 +52,7 @@ router.get('/prayer', async (_req, res) => {
 router.get('/columnists', async (_req, res) => {
   if (!assertDb(res)) return;
   const { rows } = await pool.query(
-    "SELECT id, name, email, columnist_id, photo_url, created_at FROM users WHERE role = 'columnist' ORDER BY created_at DESC"
+    "SELECT id, name, email, columnist_id, photo_url, bio, created_at FROM users WHERE role = 'columnist' ORDER BY created_at DESC"
   );
   return res.json({
     items: rows.map((r) => ({
@@ -61,7 +61,7 @@ router.get('/columnists', async (_req, res) => {
       name: r.name,
       email: r.email,
       photo: r.photo_url || '',
-      bio: '',
+      bio: r.bio || '',
       createdAt: r.created_at,
     })),
   });

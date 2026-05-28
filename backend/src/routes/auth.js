@@ -150,6 +150,7 @@ const profileSchema = z.object({
   name: z.string().min(2).max(120),
   email: z.string().email(),
   photoUrl: z.string().optional().or(z.literal('')),
+  bio: z.string().optional().or(z.literal('')),
 }).superRefine((value, ctx) => {
   if (!isValidProfilePhoto(value.photoUrl)) {
     ctx.addIssue({
@@ -212,6 +213,7 @@ function adaptDbUser(row) {
     is2fa: Boolean(row.is_2fa),
     provider: row.provider || 'password',
     photoUrl: row.photo_url || '',
+    bio: row.bio || '',
   };
 }
 
@@ -232,7 +234,7 @@ async function dbCreateUser({ name, email, passwordHash, role, columnistId, is2f
   return adaptDbUser(result.rows[0]);
 }
 
-async function dbUpsertProfileByEmail(currentEmail, { name, email, photoUrl, role, columnistId, is2fa, provider, passwordHash }) {
+async function dbUpsertProfileByEmail(currentEmail, { name, email, photoUrl, bio, role, columnistId, is2fa, provider, passwordHash }) {
   if (!hasDatabase || !pool) return null;
   const lookup = await pool.query('SELECT id FROM users WHERE email = $1 LIMIT 1', [normalizeEmail(currentEmail)]);
   if (!lookup.rows.length) {
@@ -240,10 +242,10 @@ async function dbUpsertProfileByEmail(currentEmail, { name, email, photoUrl, rol
     if (byNewEmail.rows.length) {
       const result = await pool.query(
         `UPDATE users
-         SET name = $1, email = $2, photo_url = $3, updated_at = NOW()
-         WHERE id = $4
+         SET name = $1, email = $2, photo_url = $3, bio = $4, updated_at = NOW()
+         WHERE id = $5
          RETURNING *`,
-        [name, normalizeEmail(email), photoUrl || '', byNewEmail.rows[0].id]
+        [name, normalizeEmail(email), photoUrl || '', bio || '', byNewEmail.rows[0].id]
       );
       return adaptDbUser(result.rows[0]);
     }
@@ -265,10 +267,10 @@ async function dbUpsertProfileByEmail(currentEmail, { name, email, photoUrl, rol
         if (existing.rows.length) {
           const result = await pool.query(
             `UPDATE users
-             SET name = $1, email = $2, photo_url = $3, updated_at = NOW()
-             WHERE id = $4
+             SET name = $1, email = $2, photo_url = $3, bio = $4, updated_at = NOW()
+             WHERE id = $5
              RETURNING *`,
-            [name, normalizeEmail(email), photoUrl || '', existing.rows[0].id]
+            [name, normalizeEmail(email), photoUrl || '', bio || '', existing.rows[0].id]
           );
           return adaptDbUser(result.rows[0]);
         }
@@ -279,15 +281,15 @@ async function dbUpsertProfileByEmail(currentEmail, { name, email, photoUrl, rol
   const userId = lookup.rows[0].id;
   const result = await pool.query(
     `UPDATE users
-     SET name = $1, email = $2, photo_url = $3, updated_at = NOW()
-     WHERE id = $4
+     SET name = $1, email = $2, photo_url = $3, bio = $4, updated_at = NOW()
+     WHERE id = $5
      RETURNING *`,
-    [name, normalizeEmail(email), photoUrl || '', userId]
+    [name, normalizeEmail(email), photoUrl || '', bio || '', userId]
   );
   return adaptDbUser(result.rows[0]);
 }
 
-async function dbUpsertProfileById(userId, { name, email, photoUrl, role, columnistId, is2fa, provider, passwordHash }) {
+async function dbUpsertProfileById(userId, { name, email, photoUrl, bio, role, columnistId, is2fa, provider, passwordHash }) {
   if (!hasDatabase || !pool) return null;
   const normalizedId = Number(userId);
   if (!Number.isInteger(normalizedId) || normalizedId <= 0) return null;
@@ -307,10 +309,10 @@ async function dbUpsertProfileById(userId, { name, email, photoUrl, role, column
   }
   const result = await pool.query(
     `UPDATE users
-     SET name = $1, email = $2, photo_url = $3, updated_at = NOW()
-     WHERE id = $4
+     SET name = $1, email = $2, photo_url = $3, bio = $4, updated_at = NOW()
+     WHERE id = $5
      RETURNING *`,
-    [name, normalizeEmail(email), photoUrl || '', normalizedId]
+    [name, normalizeEmail(email), photoUrl || '', bio || '', normalizedId]
   );
   return adaptDbUser(result.rows[0]);
 }
@@ -411,7 +413,7 @@ async function findUserByEmail(email) {
 
 function signSessionAndRespond(res, account) {
   const token = jwt.sign(
-    { userId: account.id, role: account.role, username: account.username, email: account.username, columnistId: account.columnistId, name: account.name || '' },
+    { userId: account.id, role: account.role, username: account.username, email: account.username, columnistId: account.columnistId, name: account.name || '', bio: account.bio || '' },
     process.env.JWT_SECRET,
     { expiresIn: '8h' }
   );
@@ -424,6 +426,7 @@ function signSessionAndRespond(res, account) {
     email: account.username,
     name: account.name || '',
     photoUrl: account.photoUrl || '',
+    bio: account.bio || '',
   });
 }
 
@@ -616,11 +619,13 @@ router.put('/profile', requireAuth, async (req, res) => {
 
   let updatedUser = null;
   const normalizedPhotoUrl = await storeProfilePhotoDataUrl(parsed.data.photoUrl || '', req, sessionUserId);
+  const bio = parsed.data.bio || '';
   if (hasDatabase && pool) {
     updatedUser = await dbUpsertProfileById(sessionUserId || currentUser.id, {
       name: parsed.data.name,
       email: newEmail,
       photoUrl: normalizedPhotoUrl,
+      bio,
       role: currentUser.role,
       columnistId: currentUser.columnistId,
       is2fa: currentUser.is2fa,
@@ -631,6 +636,7 @@ router.put('/profile', requireAuth, async (req, res) => {
     currentUser.name = parsed.data.name;
     currentUser.username = newEmail;
     currentUser.photoUrl = normalizedPhotoUrl;
+    currentUser.bio = bio;
     updatedUser = currentUser;
   }
 
@@ -669,7 +675,7 @@ const createColumnistSchema = z.object({
 
 router.get('/users', requireAuth, requireRole('alpha_admin'), async (_req, res) => {
   if (!hasDatabase || !pool) return res.status(503).json({ error: 'Banco de dados não configurado' });
-  const { rows } = await pool.query('SELECT id, name, email, role, columnist_id, photo_url, created_at FROM users ORDER BY created_at DESC');
+  const { rows } = await pool.query('SELECT id, name, email, role, columnist_id, photo_url, bio, created_at FROM users ORDER BY created_at DESC');
   return res.json({
     items: rows.map((r) => ({
       id: Number(r.id),
@@ -678,6 +684,7 @@ router.get('/users', requireAuth, requireRole('alpha_admin'), async (_req, res) 
       role: r.role,
       columnistId: r.columnist_id || null,
       photoUrl: r.photo_url || '',
+      bio: r.bio || '',
       createdAt: r.created_at,
     })),
   });

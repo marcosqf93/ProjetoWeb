@@ -10,6 +10,7 @@ import authRoutes from './routes/auth.js';
 import newsRoutes from './routes/news.js';
 import studiesRoutes from './routes/studies.js';
 import publicRoutes from './routes/public.js';
+import commentsRoutes from './routes/comments.js';
 import { hasDatabase, initDb } from './db.js';
 
 const app = express();
@@ -54,6 +55,7 @@ app.use('/auth', authRoutes);
 app.use('/news', newsRoutes);
 app.use('/studies', studiesRoutes);
 app.use('/public', publicRoutes);
+app.use('/comments', commentsRoutes);
 
 app.post('/sanitize-preview', (req, res) => {
   const cleaned = sanitizeHtml(req.body?.html || '', { allowedTags: ['p', 'b', 'i', 'strong', 'em', 'ul', 'ol', 'li', 'a'], allowedAttributes: { a: ['href'] } });

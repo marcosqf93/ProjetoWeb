@@ -102,10 +102,7 @@ router.delete('/', requireAuth, requireRole('alpha_admin'), async (_req, res) =>
   try {
     await client.query('BEGIN');
     try {
-      await client.query('DELETE FROM news_comments');
-    } catch {}
-    try {
-      await client.query('DELETE FROM comments WHERE news_id IS NOT NULL');
+      await client.query('DELETE FROM comments WHERE context = $1', ['news']);
     } catch {}
     const result = await client.query('DELETE FROM news');
     await client.query('COMMIT');

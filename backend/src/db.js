@@ -87,5 +87,21 @@ export async function initDb() {
     );
   `);
 
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS comments (
+      id BIGSERIAL PRIMARY KEY,
+      context TEXT NOT NULL CHECK (context IN ('news', 'column')),
+      context_id BIGINT NOT NULL,
+      author_name TEXT NOT NULL,
+      author_photo TEXT NOT NULL DEFAULT '',
+      author_username TEXT,
+      author_token TEXT,
+      content TEXT NOT NULL,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+  `);
+  await pool.query(`CREATE INDEX IF NOT EXISTS idx_comments_context ON comments (context, context_id);`);
+
   return true;
 }

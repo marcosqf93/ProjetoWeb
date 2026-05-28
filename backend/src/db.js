@@ -97,11 +97,13 @@ export async function initDb() {
       author_username TEXT,
       author_token TEXT,
       content TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'approved' CHECK (status IN ('pending', 'approved', 'rejected')),
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
       updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     );
   `);
   await pool.query(`CREATE INDEX IF NOT EXISTS idx_comments_context ON comments (context, context_id);`);
+  await pool.query(`ALTER TABLE comments ADD COLUMN IF NOT EXISTS status TEXT NOT NULL DEFAULT 'approved';`);
 
   return true;
 }

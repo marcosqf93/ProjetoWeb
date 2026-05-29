@@ -108,7 +108,7 @@ router.get('/columnists', async (_req, res) => {
 
 router.get('/bible/:reference', async (req, res) => {
   try {
-    const reference = req.params.reference;
+    const reference = req.params.reference.replace(/\+/g, ' ');
     const translation = req.query.translation || 'acf';
     const url = `https://bible-api.com/${encodeURIComponent(reference)}?translation=${encodeURIComponent(translation)}`;
     const resp = await fetch(url);

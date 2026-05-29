@@ -109,23 +109,57 @@ router.get('/columnists', async (_req, res) => {
 router.get('/bible/:reference', async (req, res) => {
   try {
     const reference = req.params.reference;
-    const url = `https://bible-api.com/${reference}`;
-    let data;
-    if (typeof fetch === 'function') {
-      const resp = await fetch(url);
-      data = await resp.json();
-    } else {
-      const https = await import('https');
-      data = await new Promise((resolve, reject) => {
-        https.get(url, (resp) => {
-          let body = '';
-          resp.on('data', (chunk) => { body += chunk; });
-          resp.on('end', () => {
-            try { resolve(JSON.parse(body)); } catch (_e) { reject(new Error('Parse error')); }
-          });
-        }).on('error', reject);
-      });
+    const https = await import('https');
+
+    const fetchJson = (url, timeout = 8000) => new Promise((resolve, reject) => {
+      const timer = setTimeout(() => reject(new Error('timeout')), timeout);
+      https.get(url, (resp) => {
+        let body = '';
+        resp.on('data', (chunk) => { body += chunk; });
+        resp.on('end', () => {
+          clearTimeout(timer);
+          try { resolve(JSON.parse(body)); } catch (_e) { reject(new Error('Parse error')); }
+        });
+      }).on('error', (err) => { clearTimeout(timer); reject(err); });
+    });
+
+    const slugMap = {
+      'genesis': 'gn', 'exodus': 'ex', 'leviticus': 'lv', 'numbers': 'nm', 'deuteronomy': 'dt',
+      'joshua': 'js', 'judges': 'jz', 'ruth': 'rt', '1samuel': '1sm', '2samuel': '2sm',
+      '1kings': '1rs', '2kings': '2rs', '1chronicles': '1cr', '2chronicles': '2cr',
+      'ezra': 'ed', 'nehemiah': 'ne', 'esther': 'et', 'job': 'job', 'psalms': 'sl',
+      'proverbs': 'pv', 'ecclesiastes': 'ec', 'songofsolomon': 'ct', 'isaiah': 'is',
+      'jeremiah': 'jr', 'lamentations': 'lm', 'ezekiel': 'ez', 'daniel': 'dn',
+      'hosea': 'os', 'joel': 'joel', 'amos': 'am', 'obadiah': 'ob', 'jonah': 'jn',
+      'micah': 'mq', 'nahum': 'na', 'habakkuk': 'hc', 'zephaniah': 'sf', 'haggai': 'ag',
+      'zechariah': 'zc', 'malachi': 'ml', 'matthew': 'mt', 'mark': 'mc', 'luke': 'lc',
+      'john': 'jo', 'acts': 'at', 'romans': 'rm', '1corinthians': '1co', '2corinthians': '2co',
+      'galatians': 'gl', 'ephesians': 'ef', 'philippians': 'fp', 'colossenses': 'cl',
+      '1thessalonians': '1ts', '2thessalonians': '2ts', '1timothy': '1tm', '2timothy': '2tm',
+      'titus': 'tt', 'philemon': 'fm', 'hebrews': 'hb', 'james': 'tg', '1peter': '1pe',
+      '2peter': '2pe', '1john': '1j', '2john': '2j', '3john': '3j', 'jude': 'jd', 'revelation': 'ap'
+    };
+
+    const parts = reference.split('+');
+    const bookSlug = parts[0] || '';
+    const chapter = parts[1] || '1';
+    const abbrev = slugMap[bookSlug] || bookSlug;
+
+    let data = null;
+    try {
+      data = await fetchJson(`https://www.abibliadigital.com.br/api/verses/acf/${abbrev}/${chapter}`);
+    } catch (_e) {}
+
+    if (!data || data.error) {
+      try {
+        data = await fetchJson(`https://bible-api.com/${reference}`);
+      } catch (_e) {}
     }
+
+    if (!data || data.error) {
+      return res.status(502).json({ error: 'API bíblica indisponível no momento' });
+    }
+
     return res.json(data);
   } catch (_err) {
     return res.status(500).json({ error: 'Erro ao comunicar com a API bíblica' });

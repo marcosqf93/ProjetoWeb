@@ -37,9 +37,11 @@ export async function initDb() {
       nome TEXT NOT NULL,
       celular TEXT NOT NULL,
       mensagem TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'approved' CHECK (status IN ('pending', 'approved', 'rejected')),
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     );
   `);
+  await pool.query(`ALTER TABLE prayer_requests ADD COLUMN IF NOT EXISTS status TEXT NOT NULL DEFAULT 'approved';`);
 
   await pool.query(`
     CREATE TABLE IF NOT EXISTS users (

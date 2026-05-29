@@ -1,5 +1,7 @@
 import express from 'express';
 import { pool } from '../db.js';
+import { requireAuth } from '../middleware/auth.js';
+import { requireRole } from '../middleware/rbac.js';
 import { sendPrayerEmail } from '../utils/mailer.js';
 
 const router = express.Router();
@@ -18,6 +20,7 @@ function mapPrayer(row) {
     nome: row.nome,
     celular: row.celular,
     mensagem: row.mensagem,
+    status: row.status || 'approved',
     createdAt: row.created_at,
   };
 }
@@ -40,15 +43,49 @@ router.post('/prayer', async (req, res) => {
     if (!data.success) return res.status(400).json({ error: 'Falha no reCAPTCHA' });
   }
 
-  await pool.query('INSERT INTO prayer_requests (nome, celular, mensagem) VALUES ($1, $2, $3)', [nome, celular, mensagem]);
+  await pool.query("INSERT INTO prayer_requests (nome, celular, mensagem, status) VALUES ($1, $2, $3, 'pending')", [nome, celular, mensagem]);
   sendPrayerEmail({ nome, celular, mensagem }).catch(() => {});
   return res.status(201).json({ ok: true });
 });
 
 router.get('/prayer', async (_req, res) => {
   if (!assertDb(res)) return;
-  const { rows } = await pool.query('SELECT * FROM prayer_requests ORDER BY created_at DESC');
+  const { rows } = await pool.query("SELECT * FROM prayer_requests WHERE status = 'approved' ORDER BY created_at DESC");
   return res.json({ items: rows.map(mapPrayer) });
+});
+
+router.get('/prayer/all', requireAuth, requireRole('alpha_admin'), async (req, res) => {
+  if (!assertDb(res)) return;
+  const { status } = req.query;
+  let query = 'SELECT * FROM prayer_requests';
+  const params = [];
+  if (status && ['pending', 'approved', 'rejected'].includes(status)) {
+    query += ' WHERE status = $1';
+    params.push(status);
+  }
+  query += ' ORDER BY created_at DESC LIMIT 200';
+  const { rows } = await pool.query(query, params);
+  return res.json({ items: rows.map(mapPrayer) });
+});
+
+router.put('/prayer/:id/status', requireAuth, requireRole('alpha_admin'), async (req, res) => {
+  if (!assertDb(res)) return;
+  const id = Number(req.params.id);
+  if (!Number.isInteger(id)) return res.status(400).json({ error: 'ID inválido' });
+  const { status } = req.body || {};
+  if (!['approved', 'rejected', 'pending'].includes(status)) return res.status(400).json({ error: 'Status inválido' });
+  const { rows } = await pool.query('UPDATE prayer_requests SET status = $1 WHERE id = $2 RETURNING *', [status, id]);
+  if (!rows.length) return res.status(404).json({ error: 'Pedido não encontrado' });
+  return res.json({ item: mapPrayer(rows[0]) });
+});
+
+router.delete('/prayer/:id', requireAuth, requireRole('alpha_admin'), async (req, res) => {
+  if (!assertDb(res)) return;
+  const id = Number(req.params.id);
+  if (!Number.isInteger(id)) return res.status(400).json({ error: 'ID inválido' });
+  const result = await pool.query('DELETE FROM prayer_requests WHERE id = $1', [id]);
+  if (!result.rowCount) return res.status(404).json({ error: 'Pedido não encontrado' });
+  return res.json({ ok: true });
 });
 
 router.get('/columnists', async (_req, res) => {

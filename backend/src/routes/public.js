@@ -109,17 +109,15 @@ router.get('/columnists', async (_req, res) => {
 router.get('/bible/:reference', async (req, res) => {
   try {
     const reference = req.params.reference;
-    const translation = req.query.translation || 'acf';
-    const apiUrl = `https://bible-api.com/${reference}?translation=${translation}`;
-
+    const url = `https://bible-api.com/${reference}`;
     let data;
     if (typeof fetch === 'function') {
-      const resp = await fetch(apiUrl);
+      const resp = await fetch(url);
       data = await resp.json();
     } else {
       const https = await import('https');
       data = await new Promise((resolve, reject) => {
-        https.get(apiUrl, (resp) => {
+        https.get(url, (resp) => {
           let body = '';
           resp.on('data', (chunk) => { body += chunk; });
           resp.on('end', () => {

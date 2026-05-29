@@ -108,12 +108,26 @@ router.get('/columnists', async (_req, res) => {
 
 router.get('/bible/:reference', async (req, res) => {
   try {
-    const reference = req.params.reference.replace(/\+/g, ' ');
+    const reference = req.params.reference;
     const translation = req.query.translation || 'acf';
-    const url = `https://bible-api.com/${encodeURIComponent(reference)}?translation=${encodeURIComponent(translation)}`;
-    const resp = await fetch(url);
-    if (!resp.ok) return res.status(resp.status).json({ error: 'Erro ao buscar texto bíblico' });
-    const data = await resp.json();
+    const apiUrl = `https://bible-api.com/${reference}?translation=${translation}`;
+
+    let data;
+    if (typeof fetch === 'function') {
+      const resp = await fetch(apiUrl);
+      data = await resp.json();
+    } else {
+      const https = await import('https');
+      data = await new Promise((resolve, reject) => {
+        https.get(apiUrl, (resp) => {
+          let body = '';
+          resp.on('data', (chunk) => { body += chunk; });
+          resp.on('end', () => {
+            try { resolve(JSON.parse(body)); } catch (_e) { reject(new Error('Parse error')); }
+          });
+        }).on('error', reject);
+      });
+    }
     return res.json(data);
   } catch (_err) {
     return res.status(500).json({ error: 'Erro ao comunicar com a API bíblica' });

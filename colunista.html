@@ -1,4 +1,65 @@
-<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>Página do Colunista | PODBEN</title><link rel="stylesheet" href="styles.css"/></head>
-<body><header class="topbar"><a class="logo" href="index.html"><img class="logo-img" src="https://i.ibb.co/yFXZ4Lhb/channels4-profile.jpg" alt="Logo PODBEN" onerror="this.style.display='none'"/>PODBEN <span>Podcast & Vídeo Cristão</span></a><button id="menu-toggle">☰ Menu</button><nav id="menu"><a href="index.html">Início</a><a href="quem-somos.html">Quem Somos</a><a href="noticias.html">Notícias</a><a href="galeria.html">Galeria</a><a href="estudos.html">Estudos Bíblicos</a><a href="colunistas.html">Colunistas</a><a href="admin.html">Login</a></nav></header>
-<main class="container"><section class="card article-head" id="colunista-head"></section><section class="card"><h2>Linha do tempo das colunas</h2><div class="timeline" id="colunista-timeline"></div></section><section class="card hidden" id="editor-panel"><h2>Editor do colunista</h2><form id="post-form" class="stack"><input name="titulo" placeholder="Título" required/><textarea name="conteudo" rows="6" placeholder="Escreva sua coluna" required></textarea><button type="submit">Publicar</button></form><h3>Minhas colunas</h3><div id="own-posts" class="stack"></div></section></main>
-<footer id="site-footer" class="footer"></footer><script src="data.js"></script><script src="app.js"></script></body></html>
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Página do Colunista | PODBEN</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%237a2cff'/%3E%3Ctext x='50' y='68' text-anchor='middle' font-family='Poppins,Arial' font-weight='800' font-size='48' fill='white'%3EP%3C/text%3E%3C/svg%3E"/>
+  <link rel="stylesheet" href="styles.css"/>
+</head>
+<body>
+  <div class="page-loader"><div class="page-loader-spinner"></div></div>
+  <header class="topbar">
+    <a class="logo" href="index.html"><img class="logo-img" src="https://i.ibb.co/yFXZ4Lhb/channels4-profile.jpg" alt="Logo PODBEN" onerror="this.style.display='none'"/><span class="logo-text"><strong class="logo-title">PODBEN</strong><span class="logo-subtitle">Podcast & Vídeo Cristão</span></span></a>
+    <button id="menu-toggle">☰ Menu</button>
+    <nav id="menu"><a href="index.html">Início</a><a href="noticias.html">Notícias</a><a href="estudos.html">Estudos Bíblicos</a><a href="colunistas.html">Colunistas</a><a href="galeria.html">Galeria</a><a href="quem-somos.html">Quem Somos</a></nav>
+  </header>
+
+  <main class="container colunista-page">
+    <nav class="breadcrumbs" aria-label="Breadcrumb"><a href="index.html">Home</a> <span>›</span> <a href="colunistas.html">Colunistas</a> <span>›</span> <span id="columnist-breadcrumb">Perfil</span></nav>
+
+    <section class="card glass-panel columnist-profile-hero" id="colunista-head"></section>
+
+    <section class="card glass-panel columnist-articles-block">
+      <div class="section-head">
+        <h2>Artigos do colunista</h2>
+        <a href="colunistas.html">Ver todos os colunistas</a>
+      </div>
+      <p class="meta">Conteúdos em ordem de publicação, com foco em reflexão, formação cristã e aplicação prática.</p>
+      <div id="colunista-featured"></div>
+      <div class="columnist-article-grid" id="colunista-timeline"></div>
+    </section>
+
+    <section class="card glass-panel columnist-continuity">
+      <h2>Continue navegando no portal</h2>
+      <div class="grid">
+        <article class="card"><h3>Outros colunistas</h3><p class="meta">Conheça mais vozes editoriais da PODBEN.</p><a href="colunistas.html">Explorar colunistas</a></article>
+        <article class="card"><h3>Notícias relacionadas</h3><p class="meta">Conecte opinião com fatos e contexto da região.</p><a href="noticias.html">Ir para notícias</a></article>
+        <article class="card"><h3>Estudos bíblicos</h3><p class="meta">Aprofunde os temas com leitura e download em PDF.</p><a href="estudos.html">Abrir estudos</a></article>
+      </div>
+    </section>
+
+    <section class="card hidden glass-panel columnist-editor-panel" id="editor-panel">
+      <div class="section-head">
+        <h2>Painel do colunista</h2>
+        <span class="news-badge">Modo edição</span>
+      </div>
+      <p class="meta">Área restrita para publicar, editar ou remover artigos do seu perfil.</p>
+      <form id="post-form" class="stack">
+        <label class="editor-field-label" for="post-title">Título da coluna</label>
+        <input id="post-title" name="titulo" placeholder="Ex.: Fé em tempos difíceis" required/>
+        <label class="editor-field-label" for="post-content">Conteúdo da coluna</label>
+        <div class="text-toolbar" data-target="post-content"><button type="button" data-wrap="strong">B</button><button type="button" data-wrap="em">I</button><button type="button" data-wrap="u">U</button><button type="button" data-wrap="a">Link</button></div>
+        <textarea id="post-content" name="conteudo" rows="8" placeholder="Escreva o texto completo da coluna..." required></textarea>
+        <button type="submit">Publicar</button>
+      </form>
+      <h3>Minhas colunas</h3>
+      <div id="own-posts" class="stack"></div>
+    </section>
+  </main>
+
+  <footer id="site-footer" class="footer"></footer>
+  <script src="data.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

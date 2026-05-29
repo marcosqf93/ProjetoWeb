@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Painel de Estudos | PODBEN</title>
+  <link rel="stylesheet" href="styles.css"/>
+</head>
+  <body class="admin-auth-body admin-home-bg">
+    <div class="page-loader"><div class="page-loader-spinner"></div></div>
+    <header class="admin-topbar">
+    <div class="admin-topbar-brand">
+      <a class="logo" href="index.html"><img class="logo-img" src="https://i.ibb.co/yFXZ4Lhb/channels4-profile.jpg" alt="Logo PODBEN" onerror="this.style.display='none'"/><span class="logo-text"><strong class="logo-title">PODBEN</strong><span class="logo-subtitle">Área interna • Estudos</span></span></a>
+      <p class="meta">Gestão editorial de conteúdos bíblicos</p>
+    </div>
+    <nav class="admin-nav" id="menu">
+      <a href="index.html">Início</a>
+      <a href="admin-estudos.html" aria-current="page">Estudos</a>
+      <a href="admin-dashboard.html">Notícias</a>
+      <a href="admin-galeria.html">Galeria</a>
+      <a href="colunistas.html">Colunistas</a>
+      <button id="admin-logout" class="btn-outline" type="button">Sair</button>
+    </nav>
+  </header>
+
+  <main class="container admin-studies-page admin-dashboard-modern admin-control-center">
+    <section class="card admin-studies-hero admin-hero-modern mouse-spotlight">
+      <div class="hero-glow glow-1"></div>
+      <div class="hero-glow glow-2"></div>
+      <div>
+        <p class="meta">PODBEN EDITORIAL SUITE</p>
+        <h1>Painel de Estudos Bíblicos</h1>
+        <p class="meta">Crie, revise e publique estudos com fluxo editorial mais claro, preview de mídia e controle por status.</p>
+        <div class="admin-quick-links" role="navigation" aria-label="Atalhos do painel">
+          <a href="index.html" class="btn-outline">Voltar ao início</a>
+          <a href="admin-dashboard.html" class="btn-outline">Dashboard</a>
+          <a href="admin-dashboard.html" class="btn-outline">Notícias</a>
+          <a href="admin-estudos.html" class="btn-outline" aria-current="page">Estudos</a>
+          <a href="admin-galeria.html" class="btn-outline">Galeria</a>
+        </div>
+      </div>
+      <div class="admin-studies-stats">
+        <article class="card admin-stat-card"><p class="meta stat-label"><span class="stat-dot stat-total" aria-hidden="true"></span>Total de estudos</p><h3 id="study-stat-total">0</h3></article>
+        <article class="card admin-stat-card"><p class="meta stat-label"><span class="stat-dot stat-published" aria-hidden="true"></span>Publicados</p><h3 id="study-stat-published">0</h3></article>
+        <article class="card admin-stat-card"><p class="meta stat-label"><span class="stat-dot stat-draft" aria-hidden="true"></span>Rascunhos</p><h3 id="study-stat-draft">0</h3></article>
+        <article class="card admin-stat-card"><p class="meta stat-label"><span class="stat-dot stat-pdf" aria-hidden="true"></span>PDFs enviados</p><h3 id="study-stat-pdf">0</h3></article>
+      </div>
+    </section>
+
+    <section class="admin-studies-layout">
+      <section class="card admin-publish-panel">
+        <div class="section-head">
+          <h2>Novo estudo</h2>
+          <p class="meta">Campos obrigatórios sinalizados para acelerar publicação.</p>
+        </div>
+        <p id="admin-study-feedback" class="meta"></p>
+        <form id="admin-study-form" class="stack admin-study-form">
+          <div class="admin-edit-grid">
+            <label class="admin-field"><span>Título</span><input id="study-title" name="title" placeholder="Título principal do estudo" required/></label>
+            <label class="admin-field"><span>Categoria</span><select id="study-category" name="category" required><option value="">Selecione</option><option>Vida Cristã</option><option>Oração</option><option>Família</option><option>Fé</option><option>Bíblia</option><option>Discipulado</option></select></label>
+            <label class="admin-field"><span>Status editorial</span><select id="study-status" name="status"><option value="published">Publicado</option><option value="draft">Rascunho</option></select></label>
+            <label class="admin-field"><span>Data de publicação</span><input id="study-date" name="createdAt" type="datetime-local"/></label>
+            <label class="admin-field" style="grid-column:1 / -1"><span>Imagem de capa (URL)</span><div class="file-upload-row"><input id="study-cover" name="cover" placeholder="https://..."/><button type="button" id="study-upload-cloudinary" class="btn-outline">Upload Cloudinary</button></div><span id="study-cover-file-name" class="meta"></span></label>
+            <label class="admin-field"><span>PDF</span><div class="file-upload-row"><input id="study-pdf" name="pdf" placeholder="estudos/arquivo.pdf"/><button type="button" id="study-pdf-cloudinary" class="btn-outline">Upload PDF Cloudinary</button></div><span id="study-pdf-file-name" class="meta">Nenhum PDF selecionado</span></label>
+            <label class="admin-field"><span>Resumo curto</span><textarea id="study-summary" name="summary" rows="3" placeholder="Resumo para listagens e SEO" required></textarea></label>
+          </div>
+          <label class="admin-field"><span>Conteúdo completo</span></label>
+          <div class="text-toolbar" data-target="study-content"><button type="button" data-wrap="strong">B</button><button type="button" data-wrap="em">I</button><button type="button" data-wrap="u">U</button><button type="button" data-wrap="h2">H2</button><button type="button" data-wrap="ul">Lista</button><button type="button" data-wrap="quote">Citação</button><button type="button" data-wrap="mark">Reflexão</button><button type="button" data-wrap="a">Link</button></div>
+          <textarea id="study-content" name="content" rows="10" placeholder="Escreva aqui o conteúdo principal do estudo..." required></textarea>
+          <input id="study-action" type="hidden" name="action" value="publish"/>
+          <div class="row-actions">
+            <button type="button" data-submit-action="publish">Publicar estudo</button>
+            <button type="button" data-submit-action="draft" class="btn-outline">Salvar rascunho</button>
+            <button type="button" data-submit-action="preview" class="btn-outline">Pré-visualizar</button>
+            <button type="reset" id="study-reset" class="btn-outline">Limpar</button>
+          </div>
+        </form>
+      </section>
+
+      <aside class="card admin-study-preview-panel">
+        <h2>Prévia rápida</h2>
+        <img id="study-cover-preview" src="https://picsum.photos/seed/estudo-preview/520/300" alt="Pré-visualização da capa"/>
+        <p class="meta" id="study-pdf-file-name">PDF: não selecionado</p>
+        <h3 id="study-preview-title">Título do estudo</h3>
+        <p id="study-preview-summary" class="meta">Resumo aparecerá aqui conforme você digita.</p>
+      </aside>
+    </section>
+
+    <section class="card admin-list-panel">
+      <div class="section-head">
+        <h2>Estudos publicados</h2>
+        <div class="row-actions">
+          <input id="admin-study-search" placeholder="Buscar estudo por título ou categoria"/>
+          <select id="admin-study-filter"><option value="all">Todos</option><option value="published">Publicados</option><option value="draft">Rascunhos</option></select>
+        </div>
+      </div>
+      <div id="admin-study-list" class="stack"></div>
+    </section>
+  </main>
+
+  <script src="https://upload-widget.cloudinary.com/global/all.js" type="text/javascript"></script>
+  <script src="data.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

@@ -1,4 +1,64 @@
-<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>Colunistas | PODBEN</title><link rel="stylesheet" href="styles.css"/></head>
-<body><header class="topbar"><a class="logo" href="index.html"><img class="logo-img" src="https://i.ibb.co/yFXZ4Lhb/channels4-profile.jpg" alt="Logo PODBEN" onerror="this.style.display='none'"/>PODBEN <span>Podcast & Vídeo Cristão</span></a><button id="menu-toggle">☰ Menu</button><nav id="menu"><a href="index.html">Início</a><a href="quem-somos.html">Quem Somos</a><a href="noticias.html">Notícias</a><a href="galeria.html">Galeria</a><a href="estudos.html">Estudos Bíblicos</a><a href="colunistas.html">Colunistas</a><a href="admin.html">Login</a></nav></header>
-<main class="container"><section class="hero"><h1>Colunistas</h1><p>Selecione um colunista para ver a linha do tempo de publicações.</p></section><div class="cols-highlight" id="columnists"></div></main>
-<footer id="site-footer" class="footer"></footer><script src="data.js"></script><script src="app.js"></script></body></html>
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Colunistas | PODBEN</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%237a2cff'/%3E%3Ctext x='50' y='68' text-anchor='middle' font-family='Poppins,Arial' font-weight='800' font-size='48' fill='white'%3EP%3C/text%3E%3C/svg%3E"/>
+  <link rel="stylesheet" href="styles.css"/>
+</head>
+<body>
+  <div class="page-loader"><div class="page-loader-spinner"></div></div>
+  <div id="scroll-progress"></div>
+  <header class="topbar">
+    <a class="logo" href="index.html"><img class="logo-img" src="https://i.ibb.co/yFXZ4Lhb/channels4-profile.jpg" alt="Logo PODBEN" onerror="this.style.display='none'"/><span class="logo-text"><strong class="logo-title">PODBEN</strong><span class="logo-subtitle">Podcast & Vídeo Cristão</span></span></a>
+    <button id="menu-toggle">☰ Menu</button>
+    <nav id="menu"><a href="index.html">Início</a><a href="noticias.html">Notícias</a><a href="estudos.html">Estudos Bíblicos</a><a href="colunistas.html">Colunistas</a><a href="galeria.html">Galeria</a><a href="quem-somos.html">Quem Somos</a></nav>
+  </header>
+
+  <main class="container colunistas-page">
+    <nav class="breadcrumbs" aria-label="Breadcrumb"><a href="index.html">Home</a> <span>›</span> <span>Colunistas</span></nav>
+
+    <section class="hero col-hero glass-panel columnist-hero-premium mouse-spotlight">
+      <div class="hero-glow glow-1"></div>
+      <div class="hero-glow glow-2"></div>
+      <div class="stack">
+        <p class="meta">OPINIÃO & REFLEXÃO</p>
+        <h1>Colunistas PODBEN</h1>
+        <p class="columnist-hero-subtitle">Vozes que unem fé, discernimento e leitura de contexto para fortalecer a caminhada cristã em Aquidauana e região.</p>
+        <div class="row-actions">
+          <a class="btn" href="#columnists">Ler artigos dos colunistas</a>
+          <a class="btn-outline" href="estudos.html">Explorar estudos bíblicos</a>
+        </div>
+      </div>
+      <aside class="card columnist-hero-aside">
+        <p class="meta">Editoria PODBEN</p>
+          <h3>Autoridade editorial com propósito</h3>
+          <p>Cada colunista compartilha reflexões com responsabilidade bíblica, relevância local e compromisso com a edificação da comunidade.</p>
+      </aside>
+    </section>
+
+    <section class="home-section-surface">
+      <div class="section-head">
+        <h2>Colunistas</h2>
+        <span class="meta">Vozes que edificam</span>
+      </div>
+      <div id="columnist-filters" class="news-filter-row"></div>
+      <div id="columnists" class="grid stagger-children"></div>
+    </section>
+
+    <section class="card glass-panel columnist-retention">
+      <h2>Continue navegando no portal</h2>
+      <div class="grid stagger-children">
+        <article class="card card-tilt"><h3>Leia artigos mais recentes</h3><p class="meta">Acesse opiniões e reflexões publicadas pela equipe de colunistas.</p><a href="colunistas.html">Ver colunistas</a></article>
+        <article class="card card-tilt"><h3>Notícias e contexto</h3><p class="meta">Conecte os artigos com os fatos mais relevantes do dia.</p><a href="noticias.html">Ir para notícias</a></article>
+        <article class="card card-tilt"><h3>Estudos bíblicos</h3><p class="meta">Aprofunde a fé com conteúdos de leitura e download em PDF.</p><a href="estudos.html">Abrir estudos</a></article>
+      </div>
+    </section>
+  </main>
+
+  <footer id="site-footer" class="footer"></footer>
+  <script src="data.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

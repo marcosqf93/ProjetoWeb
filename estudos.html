@@ -1,4 +1,59 @@
-<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>Estudos Bíblicos | PODBEN</title><link rel="stylesheet" href="styles.css"/></head>
-<body><header class="topbar"><a class="logo" href="index.html"><img class="logo-img" src="https://i.ibb.co/yFXZ4Lhb/channels4-profile.jpg" alt="Logo PODBEN" onerror="this.style.display='none'"/>PODBEN <span>Podcast & Vídeo Cristão</span></a><button id="menu-toggle">☰ Menu</button><nav id="menu"><a href="index.html">Início</a><a href="quem-somos.html">Quem Somos</a><a href="noticias.html">Notícias</a><a href="galeria.html">Galeria</a><a href="estudos.html">Estudos Bíblicos</a><a href="colunistas.html">Colunistas</a><a href="admin.html">Login</a></nav></header>
-<main class="container"><section class="hero"><h1>Estudos Bíblicos</h1><p>Capa, descrição e download em PDF.</p></section><div class="grid" id="studies"></div></main>
-<footer id="site-footer" class="footer"></footer><script src="data.js"></script><script src="app.js"></script></body></html>
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Estudos Bíblicos | PODBEN</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%237a2cff'/%3E%3Ctext x='50' y='68' text-anchor='middle' font-family='Poppins,Arial' font-weight='800' font-size='48' fill='white'%3EP%3C/text%3E%3C/svg%3E"/>
+  <link rel="stylesheet" href="styles.css"/>
+</head>
+<body>
+  <div class="page-loader"><div class="page-loader-spinner"></div></div>
+  <div id="scroll-progress"></div>
+  <header class="topbar"><a class="logo" href="index.html"><img class="logo-img" src="https://i.ibb.co/yFXZ4Lhb/channels4-profile.jpg" alt="Logo PODBEN" onerror="this.style.display='none'"/><span class="logo-text"><strong class="logo-title">PODBEN</strong><span class="logo-subtitle">Podcast & Vídeo Cristão</span></span></a><button id="menu-toggle">☰ Menu</button><nav id="menu"><a href="index.html">Início</a><a href="noticias.html">Notícias</a><a href="estudos.html">Estudos Bíblicos</a><a href="colunistas.html">Colunistas</a><a href="galeria.html">Galeria</a><a href="quem-somos.html">Quem Somos</a></nav></header>
+
+  <main class="container estudos-page">
+    <nav class="breadcrumbs"><a href="index.html">Home</a> <span>›</span> <span>Estudos Bíblicos</span></nav>
+
+    <section class="hero glass-panel studies-hero mouse-spotlight">
+      <div class="hero-glow glow-1"></div>
+      <div class="hero-glow glow-2"></div>
+      <div>
+        <p class="meta">Biblioteca PODBEN</p>
+        <h1>Estudos Bíblicos</h1>
+        <p>Uma biblioteca digital para aprofundar sua fé com conteúdo confiável, leitura acolhedora e material em PDF para estudar onde estiver.</p>
+        <div class="row-actions">
+          <a href="#study-featured" class="btn">Ler estudo em destaque</a>
+          <a href="#studies" class="btn-outline">Baixar PDFs</a>
+        </div>
+      </div>
+      <article id="study-hero-featured" class="card card-tilt study-hero-highlight"></article>
+    </section>
+
+    <section id="study-featured" class="card glass-panel studies-featured-section"></section>
+
+    <section class="card glass-panel">
+      <h2>Biblioteca de estudos</h2>
+      <div class="studies-toolbar">
+        <div id="studies-tags" class="tag-list"></div>
+        <input id="studies-search" type="search" placeholder="Buscar estudo por tema, título ou palavra-chave"/>
+      </div>
+      <div id="studies" class="stack stagger-children"></div>
+    </section>
+
+    <section class="card glass-panel studies-author-block" id="studies-author"></section>
+
+    <section class="card glass-panel studies-continuity">
+      <h2>Continue sua jornada</h2>
+      <div class="grid stagger-children">
+        <article class="card card-tilt"><h3>Veja também notícias relacionadas</h3><p class="meta">Fique por dentro dos acontecimentos que impactam sua comunidade.</p><a href="noticias.html">Ir para editoria de notícias</a></article>
+        <article class="card card-tilt"><h3>Conheça nossos colunistas</h3><p class="meta">Autores com voz, visão e propósito para fortalecer sua caminhada.</p><a href="colunistas.html">Explorar colunistas</a></article>
+        <article class="card card-tilt"><h3>Receba novos estudos</h3><p class="meta">Acompanhe novos conteúdos bíblicos e materiais para baixar.</p><a href="index.html#pedido-form">Quero receber novidades</a></article>
+      </div>
+    </section>
+  </main>
+
+  <footer id="site-footer" class="footer"></footer>
+  <script src="data.js"></script><script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Meu Perfil | PODBEN</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%237a2cff'/%3E%3Ctext x='50' y='68' text-anchor='middle' font-family='Poppins,Arial' font-weight='800' font-size='48' fill='white'%3EP%3C/text%3E%3C/svg%3E"/>
+  <link rel="stylesheet" href="styles.css"/>
+</head>
+  <body>
+    <div class="page-loader"><div class="page-loader-spinner"></div></div>
+    <header class="topbar">
+    <a class="logo" href="index.html"><img class="logo-img" src="https://i.ibb.co/yFXZ4Lhb/channels4-profile.jpg" alt="Logo PODBEN" onerror="this.style.display='none'"/><span class="logo-text"><strong class="logo-title">PODBEN</strong><span class="logo-subtitle">Podcast & Vídeo Cristão</span></span></a>
+    <button id="menu-toggle">☰ Menu</button>
+    <nav id="menu"><a href="index.html">Início</a><a href="noticias.html">Notícias</a><a href="estudos.html">Estudos Bíblicos</a><a href="colunistas.html">Colunistas</a><a href="galeria.html">Galeria</a><a href="quem-somos.html">Quem Somos</a><a href="perfil.html">Meu Perfil</a></nav>
+  </header>
+
+  <main class="container profile-page-wrap">
+    <section class="card profile-card" aria-labelledby="profile-title">
+      <p class="meta">CONTA PODBEN</p>
+      <h1 id="profile-title">Meu perfil</h1>
+      <form id="profile-form" class="stack">
+        <div class="profile-photo-editor">
+          <input id="profile-photo" name="photoUrl" type="hidden"/>
+          <input id="profile-photo-file" type="file" accept="image/png,image/jpeg,image/webp,image/gif" class="hidden" aria-label="Selecionar foto de perfil"/>
+          <button id="profile-photo-trigger" type="button" class="profile-photo-trigger" aria-label="Alterar foto de perfil">
+            <img id="profile-photo-preview" src="https://cdn-icons-png.flaticon.com/512/149/149071.png" alt="Pré-visualização da foto do perfil"/>
+            <span class="profile-photo-camera" aria-hidden="true">📷</span>
+          </button>
+          <p class="meta">Clique na foto para enviar imagem (JPG, PNG, WEBP ou GIF).</p>
+          <button id="profile-photo-remove" type="button" class="btn-outline">Remover foto</button>
+        </div>
+        <label class="editor-field-label" for="profile-name">Nome</label>
+        <input id="profile-name" name="name" type="text" required/>
+        <label class="editor-field-label" for="profile-email">E-mail</label>
+        <input id="profile-email" name="email" type="email" required/>
+        <label class="editor-field-label" for="profile-bio">Bio (aparece na página do colunista)</label>
+        <textarea id="profile-bio" name="bio" rows="3" placeholder="Breve descrição sobre você e seu ministério de escrita"></textarea>
+        <button type="submit">Salvar perfil</button>
+      </form>
+      <hr/>
+      <h2>Segurança</h2>
+      <form id="profile-password-form" class="stack">
+        <label class="editor-field-label" for="profile-current-password">Senha atual</label>
+        <input id="profile-current-password" name="currentPassword" type="password" required/>
+        <label class="editor-field-label" for="profile-new-password">Nova senha</label>
+        <input id="profile-new-password" name="newPassword" type="password" minlength="8" required/>
+        <button type="submit">Alterar senha</button>
+      </form>
+      <p id="profile-feedback" class="meta" role="status" aria-live="polite"></p>
+    </section>
+
+    <section class="card profile-card" id="admin-users-section" style="display:none">
+      <p class="meta">ADMINistraÇÃO</p>
+      <h2>Cadastrar colunista</h2>
+      <p class="meta">Cadastre novos colunistas com nome, e-mail, senha e foto de perfil.</p>
+      <p id="profile-user-feedback" class="meta" role="status" aria-live="polite"></p>
+      <form id="profile-user-form" class="stack">
+        <label class="editor-field-label" for="profile-user-name">Nome completo</label>
+        <input id="profile-user-name" name="name" type="text" placeholder="Nome do colunista" required/>
+        <label class="editor-field-label" for="profile-user-email">E-mail</label>
+        <input id="profile-user-email" name="email" type="email" placeholder="email@exemplo.com" required/>
+        <label class="editor-field-label" for="profile-user-password">Senha</label>
+        <input id="profile-user-password" name="password" type="password" minlength="8" placeholder="Mínimo 8 caracteres" required/>
+        <label class="editor-field-label" for="profile-user-photo">Foto de perfil (URL)</label>
+        <div class="file-upload-row">
+          <input id="profile-user-photo" name="photoUrl" placeholder="https://..."/>
+          <button type="button" id="profile-user-photo-upload" class="btn-outline">Upload</button>
+        </div>
+        <span id="profile-user-photo-file-name" class="meta"></span>
+        <button type="submit">Cadastrar colunista</button>
+      </form>
+      <hr/>
+      <h3>Colunistas cadastrados</h3>
+      <div id="profile-user-list" class="stack"></div>
+    </section>
+  </main>
+
+  <footer id="site-footer" class="footer"></footer>
+  <div id="profile-crop-modal" class="auth-modal hidden" role="dialog" aria-modal="true" aria-labelledby="profile-crop-title">
+    <div class="auth-modal-card profile-crop-card">
+      <h3 id="profile-crop-title">Ajustar foto de perfil</h3>
+      <p class="meta">Arraste para reposicionar e use o zoom antes de aplicar.</p>
+      <div id="profile-crop-stage" class="profile-crop-stage">
+        <img id="profile-crop-image" alt="Prévia de recorte"/>
+      </div>
+      <label class="editor-field-label" for="profile-crop-zoom">Zoom</label>
+      <input id="profile-crop-zoom" type="range" min="1" max="3" step="0.01" value="1"/>
+      <div class="row-actions">
+        <button id="profile-crop-apply" type="button">Aplicar foto</button>
+        <button id="profile-crop-cancel" type="button" class="btn-outline">Cancelar</button>
+      </div>
+    </div>
+  </div>
+  <script src="data.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

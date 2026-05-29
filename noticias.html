@@ -1,4 +1,59 @@
-<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>Notícias | PODBEN</title><link rel="stylesheet" href="styles.css"/></head>
-<body><header class="topbar"><a class="logo" href="index.html"><img class="logo-img" src="https://i.ibb.co/yFXZ4Lhb/channels4-profile.jpg" alt="Logo PODBEN" onerror="this.style.display='none'"/>PODBEN <span>Podcast & Vídeo Cristão</span></a><button id="menu-toggle">☰ Menu</button><nav id="menu"><a href="index.html">Início</a><a href="quem-somos.html">Quem Somos</a><a href="noticias.html">Notícias</a><a href="galeria.html">Galeria</a><a href="estudos.html">Estudos Bíblicos</a><a href="colunistas.html">Colunistas</a><a href="admin.html">Login</a></nav></header>
-<main class="container"><section class="hero"><h1>Todas as notícias</h1><p>Notícias reais com links para a fonte original.</p></section><div class="grid" id="all-news"></div></main>
-<footer id="site-footer" class="footer"></footer><script src="data.js"></script><script src="app.js"></script></body></html>
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Notícias | PODBEN</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%237a2cff'/%3E%3Ctext x='50' y='68' text-anchor='middle' font-family='Poppins,Arial' font-weight='800' font-size='48' fill='white'%3EP%3C/text%3E%3C/svg%3E"/>
+  <link rel="stylesheet" href="styles.css"/>
+</head>
+  <body class="news-home-bg">
+    <div class="page-loader"><div class="page-loader-spinner"></div></div>
+    <div id="scroll-progress"></div>
+    <header class="topbar">
+    <a class="logo" href="index.html"><img class="logo-img" src="https://i.ibb.co/yFXZ4Lhb/channels4-profile.jpg" alt="Logo PODBEN" onerror="this.style.display='none'"/><span class="logo-text"><strong class="logo-title">PODBEN</strong><span class="logo-subtitle">Podcast & Vídeo Cristão</span></span></a>
+    <button id="menu-toggle">☰ Menu</button>
+    <nav id="menu"><a href="index.html">Início</a><a href="noticias.html">Notícias</a><a href="estudos.html">Estudos Bíblicos</a><a href="colunistas.html">Colunistas</a><a href="galeria.html">Galeria</a><a href="quem-somos.html">Quem Somos</a></nav>
+  </header>
+
+  <main class="container news-editorial-page">
+    <section class="hero news-editorial-hero mouse-spotlight">
+      <div class="hero-glow glow-1"></div>
+      <div class="hero-glow glow-2"></div>
+      <div class="section-head">
+        <h1>Redação PODBEN</h1>
+        <a href="index.html">Voltar à Home</a>
+      </div>
+      <p>Jornalismo local com responsabilidade, fé e compromisso com a verdade. Acompanhe os fatos mais relevantes de Aquidauana e região.</p>
+      <div class="news-hero-layout">
+        <article id="news-hero-main" class="card card-tilt news-hero-main"></article>
+        <div id="news-hero-side" class="stack stagger-children news-hero-side"></div>
+      </div>
+    </section>
+
+    <section class="news-latest-wrap">
+      <div class="section-head">
+        <h2>Últimas notícias</h2>
+        <span class="meta">Atualizado ao longo do dia</span>
+      </div>
+      <div id="news-filters" class="news-filter-row"></div>
+      <div class="news-main-layout">
+        <div>
+          <div id="all-news" class="news-cards-grid stagger-children"></div>
+          <div class="row-actions">
+            <button id="load-more-news" type="button" class="btn-outline">Carregar mais notícias</button>
+          </div>
+        </div>
+        <aside class="card news-sidebar">
+          <h3>Destaques do dia</h3>
+          <div id="news-most-read" class="stack stagger-children"></div>
+        </aside>
+      </div>
+    </section>
+  </main>
+
+  <footer id="site-footer" class="footer"></footer>
+  <script src="data.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

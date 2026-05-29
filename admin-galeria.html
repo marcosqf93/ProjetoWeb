@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Painel Galeria | PODBEN</title>
+  <link rel="stylesheet" href="styles.css"/>
+</head>
+  <body class="admin-auth-body admin-home-bg">
+    <div class="page-loader"><div class="page-loader-spinner"></div></div>
+    <header class="admin-topbar">
+    <div class="admin-topbar-brand">
+      <a class="logo" href="index.html"><img class="logo-img" src="https://i.ibb.co/yFXZ4Lhb/channels4-profile.jpg" alt="Logo PODBEN" onerror="this.style.display='none'"/><span class="logo-text"><strong class="logo-title">PODBEN</strong><span class="logo-subtitle">Área interna • Galeria</span></span></a>
+      <p class="meta">Gestão de fotos e vídeos da galeria</p>
+    </div>
+    <nav class="admin-nav" id="menu">
+      <a href="index.html">Início</a>
+      <a href="admin-estudos.html">Estudos</a>
+      <a href="admin-dashboard.html">Notícias</a>
+      <a href="admin-galeria.html" aria-current="page">Galeria</a>
+      <a href="colunistas.html">Colunistas</a>
+      <button id="admin-logout" class="btn-outline" type="button">Sair</button>
+    </nav>
+  </header>
+
+  <main class="container admin-studies-page admin-dashboard-modern admin-control-center">
+    <section class="card admin-studies-hero admin-hero-modern mouse-spotlight">
+      <div class="hero-glow glow-1"></div>
+      <div class="hero-glow glow-2"></div>
+      <div class="admin-hero-copy">
+        <p class="meta">PODBEN MEDIA HUB</p>
+        <h1>Painel da Galeria</h1>
+        <p class="meta">Upload e organização de fotos e vídeos com fluxo visual simplificado.</p>
+        <div class="admin-quick-links" role="navigation" aria-label="Atalhos do painel">
+          <a href="index.html" class="btn-outline">Voltar ao início</a>
+          <a href="admin-dashboard.html" class="btn-outline">Dashboard</a>
+          <a href="admin-dashboard.html" class="btn-outline">Notícias</a>
+          <a href="admin-estudos.html" class="btn-outline">Estudos</a>
+          <a href="admin-galeria.html" class="btn-outline" aria-current="page">Galeria</a>
+        </div>
+      </div>
+      <div class="admin-studies-stats">
+        <article class="card admin-stat-card"><p class="meta stat-label"><span class="stat-dot stat-news" aria-hidden="true"></span>Notícias</p><h3 id="summary-news-count">0</h3></article>
+        <article class="card admin-stat-card"><p class="meta stat-label"><span class="stat-dot stat-studies" aria-hidden="true"></span>Estudos</p><h3 id="summary-studies-count">0</h3></article>
+        <article class="card admin-stat-card"><p class="meta stat-label"><span class="stat-dot stat-gallery" aria-hidden="true"></span>Galeria</p><h3 id="summary-gallery-count">0</h3></article>
+        <article class="card admin-stat-card"><p class="meta stat-label"><span class="stat-dot stat-recent" aria-hidden="true"></span>Recentes (7 dias)</p><h3 id="summary-recent-count">0</h3></article>
+      </div>
+    </section>
+
+    <section class="admin-studies-layout">
+      <section class="card admin-publish-panel" data-admin-tab-panel="galeria">
+        <h2>Galeria (Fotos e Vídeos)</h2>
+        <p class="meta">Cadastre itens da galeria por URL ou faça upload de imagens/vídeos.</p>
+        <form id="admin-gallery-form" class="stack">
+          <label class="editor-field-label" for="gallery-title">Título base</label>
+          <input id="gallery-title" name="title" placeholder="Ex.: Congresso de Louvor" required/>
+          <label class="editor-field-label" for="gallery-category">Categoria</label>
+          <input id="gallery-category" name="category" placeholder="Eventos, Cultos, Bastidores..." required/>
+          <label class="editor-field-label" for="gallery-type">Tipo de mídia</label>
+          <select id="gallery-type" name="mediaType"><option value="image">Foto</option><option value="video">Vídeo</option></select>
+          <label class="editor-field-label" for="gallery-date">Data (opcional)</label>
+          <input id="gallery-date" name="createdAt" placeholder="2026-04-17T20:00:00-04:00"/>
+          <label class="editor-field-label" for="gallery-caption">Legenda</label>
+          <textarea id="gallery-caption" name="caption" rows="3" placeholder="Breve contexto do item visual" required></textarea>
+          <label class="editor-field-label" for="gallery-urls">URLs da mídia (uma por linha)</label>
+          <textarea id="gallery-urls" name="urls" rows="4" placeholder="https://...&#10;https://..." required></textarea>
+          <label class="editor-field-label" for="gallery-upload-files">Upload de mídia (opcional)</label>
+          <input id="gallery-upload-files" type="file" accept="image/*,video/mp4,video/webm,video/ogg" multiple/>
+          <button id="gallery-upload-btn" type="button" class="btn-outline">Enviar arquivos selecionados</button>
+          <p id="gallery-upload-feedback" class="meta" role="status" aria-live="polite"></p>
+          <button type="submit">Publicar na galeria</button>
+        </form>
+      </section>
+      <aside class="card admin-study-preview-panel">
+        <h2>Status da galeria</h2>
+        <p class="meta">Após publicar, os itens aparecem imediatamente no site.</p>
+        <article class="card admin-preview-card"><p class="meta">Dica: use títulos curtos e categorias consistentes para melhorar a navegação.</p></article>
+      </aside>
+    </section>
+
+    <section class="card admin-list-panel" data-admin-tab-panel="galeria">
+      <h2>Itens da galeria publicados</h2>
+      <div id="admin-gallery-list" class="stack"></div>
+    </section>
+  </main>
+
+  <script src="data.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

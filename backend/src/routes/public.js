@@ -106,4 +106,18 @@ router.get('/columnists', async (_req, res) => {
   });
 });
 
+router.get('/bible/:reference', async (req, res) => {
+  try {
+    const reference = req.params.reference;
+    const translation = req.query.translation || 'acf';
+    const url = `https://bible-api.com/${encodeURIComponent(reference)}?translation=${encodeURIComponent(translation)}`;
+    const resp = await fetch(url);
+    if (!resp.ok) return res.status(resp.status).json({ error: 'Erro ao buscar texto bíblico' });
+    const data = await resp.json();
+    return res.json(data);
+  } catch (_err) {
+    return res.status(500).json({ error: 'Erro ao comunicar com a API bíblica' });
+  }
+});
+
 export default router;

@@ -205,7 +205,7 @@ async function loadAcfBible() {
   acfLoading = (async () => {
     try {
       const raw = await httpGet('https://raw.githubusercontent.com/maatheusgois/bible/main/versions/pt-br/acf.json');
-      acfBible = JSON.parse(raw);
+      acfBible = JSON.parse(raw.replace(/^\uFEFF/, ''));
       return acfBible;
     } catch (_err) {
       acfLoading = null;

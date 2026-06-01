@@ -487,10 +487,84 @@
     return clean;
   }
 
+  let remoteNewsCache = [];
+  let remoteNewsLoaded = false;
+
+  async function fetchRemoteNews() {
+    try {
+      const resp = await fetch(`${API_BASE}/news`, { credentials: 'include' });
+      if (!resp.ok) return;
+      const dataResp = await resp.json().catch(() => ({}));
+      if (Array.isArray(dataResp.items)) {
+        remoteNewsCache = dataResp.items.map((n) => ({
+          id: n.id,
+          category: n.category,
+          title: n.title,
+          text: n.text,
+          image: n.image || '',
+          video: n.video || '',
+          link: n.link || '',
+          source: n.source || 'PODBEN',
+          location: n.location || 'Aquidauana/MS',
+          createdAt: n.createdAt,
+          local: true,
+        }));
+        remoteNewsLoaded = true;
+      }
+    } catch (_err) {}
+  }
+
+  async function apiCreateNews(payload) {
+    const resp = await fetch(`${API_BASE}/news`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    if (!resp.ok) {
+      const err = await resp.json().catch(() => ({}));
+      throw new Error(err.error || 'Falha ao criar notícia');
+    }
+    const result = await resp.json();
+    remoteNewsCache.unshift(result.item);
+    return result.item;
+  }
+
+  async function apiUpdateNews(id, payload) {
+    const resp = await fetch(`${API_BASE}/news/${id}`, {
+      method: 'PUT',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    if (!resp.ok) {
+      const err = await resp.json().catch(() => ({}));
+      throw new Error(err.error || 'Falha ao atualizar notícia');
+    }
+    const result = await resp.json();
+    remoteNewsCache = remoteNewsCache.map((n) => n.id === id ? result.item : n);
+    return result.item;
+  }
+
+  async function apiDeleteNews(id) {
+    const resp = await fetch(`${API_BASE}/news/${id}`, {
+      method: 'DELETE',
+      credentials: 'include',
+    });
+    if (!resp.ok) {
+      const err = await resp.json().catch(() => ({}));
+      throw new Error(err.error || 'Falha ao excluir notícia');
+    }
+    remoteNewsCache = remoteNewsCache.filter((n) => n.id !== id);
+  }
+
   function allNews() {
-    const locals = getAdminNews().map((n) => normalizeNewsItem({ ...n, local: true }));
+    const remote = remoteNewsLoaded ? remoteNewsCache : [];
+    const locals = remoteNewsLoaded ? [] : getAdminNews().map((n) => normalizeNewsItem({ ...n, local: true }));
     const defaults = (data.news || []).map((n) => normalizeNewsItem(n));
-    return [...locals, ...defaults].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    const all = [...remote, ...locals, ...defaults];
+    const unique = [...new Map(all.map((n) => [n.id, n])).values()];
+    return unique.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
   }
   function allStudies() {
     const locals = remoteStudiesLoaded ? remoteStudiesCache : getAdminStudies();
@@ -531,64 +605,26 @@
       allStudies().slice(0, 4).forEach((s) => studiesHome.innerHTML += `<article class="card study-home-card"><a href="estudo.html?id=${s.id}"><img src="${s.cover}" alt="${s.title}" class="study-home-cover"/><h3>${s.title}</h3><p class="meta">${s.category || 'Estudo Bíblico'}</p></a></article>`);
     }
 
-    const testamentSelect = document.getElementById('testament-select');
-    const bookSelect = document.getElementById('book-select');
-    const chapterSelect = document.getElementById('chapter-select');
-    if (testamentSelect && bookSelect && chapterSelect) {
-      const frame = document.getElementById('bible-frame');
-      const bibleBookMap = {
-        'gênesis': 'gn', 'êxodo': 'ex', 'levítico': 'lv', 'números': 'nm', 'deuteronômio': 'dt', 'josué': 'js', 'juízes': 'jz', 'rute': 'rt',
-        '1 samuel': '1sm', '2 samuel': '2sm', '1 reis': '1rs', '2 reis': '2rs', '1 crônicas': '1cr', '2 crônicas': '2cr',
-        'esdras': 'ed', 'neemias': 'ne', 'ester': 'et', 'jó': 'jó', 'salmos': 'sl', 'provérbios': 'pv', 'eclesiastes': 'ec', 'cânticos': 'ct',
-        'isaías': 'is', 'jeremias': 'jr', 'lamentações': 'lm', 'ezequiel': 'ez', 'daniel': 'dn', 'oseias': 'os', 'joel': 'jl', 'amós': 'am',
-        'obadias': 'ob', 'jonas': 'jn', 'miqueias': 'mq', 'naum': 'na', 'habacuque': 'hc', 'sofonias': 'sf', 'ageu': 'ag', 'zacarias': 'zc', 'malaquias': 'ml',
-        'mateus': 'mt', 'marcos': 'mc', 'lucas': 'lc', 'joão': 'jo', 'atos': 'at', 'romanos': 'rm', '1 coríntios': '1co', '2 coríntios': '2co',
-        'gálatas': 'gl', 'efésios': 'ef', 'filipenses': 'fp', 'colossenses': 'cl', '1 tessalonicenses': '1ts', '2 tessalonicenses': '2ts',
-        '1 timóteo': '1tm', '2 timóteo': '2tm', 'tito': 'tt', 'filemom': 'fm', 'hebreus': 'hb', 'tiago': 'tg', '1 pedro': '1pe', '2 pedro': '2pe',
-        '1 joão': '1jo', '2 joão': '2jo', '3 joão': '3jo', 'judas': 'jd', 'apocalipse': 'ap'
-      };
-      const normalizeBook = (name) => String(name || '')
-        .normalize('NFD')
-        .replace(/[\u0300-\u036f]/g, '')
-        .replace(/\s+/g, ' ')
-        .trim()
-        .toLowerCase();
-      const getBookSlug = (name) => {
-        const normalized = normalizeBook(name);
-        const found = Object.entries(bibleBookMap).find(([k]) => normalizeBook(k) === normalized);
-        return found?.[1] || encodeURIComponent(name);
-      };
-      const fillBooks = () => { bookSelect.innerHTML = Object.keys(data.bible[testamentSelect.value]).map((b) => `<option value="${b}">${b}</option>`).join(''); fillChapters(); };
-      const fillChapters = () => { const total = data.bible[testamentSelect.value][bookSelect.value] || 1; chapterSelect.innerHTML = Array.from({ length: total }).map((_, i) => `<option value="${i + 1}">Capítulo ${i + 1}</option>`).join(''); };
-      const updateReference = () => {
-        const bookSlug = getBookSlug(bookSelect.value);
-        const u = `https://www.bibliaonline.com.br/acf/${bookSlug}/${chapterSelect.value}`;
-        if (frame) frame.src = u;
-      };
-      testamentSelect.addEventListener('change', () => { fillBooks(); updateReference(); });
-      bookSelect.addEventListener('change', () => { fillChapters(); updateReference(); });
-      chapterSelect.addEventListener('change', updateReference);
-      document.getElementById('prev-chapter')?.addEventListener('click', () => { const c = Number(chapterSelect.value || 1); if (c > 1) chapterSelect.value = String(c - 1); updateReference(); });
-      document.getElementById('next-chapter')?.addEventListener('click', () => { const total = data.bible[testamentSelect.value][bookSelect.value] || 1; const c = Number(chapterSelect.value || 1); if (c < total) chapterSelect.value = String(c + 1); updateReference(); });
-      fillBooks();
-      const bibleWrap = document.getElementById('bible-embed-wrap');
-      const bibleClose = document.getElementById('bible-close');
-      document.getElementById('open-bible')?.addEventListener('click', () => {
-        if (bibleWrap) bibleWrap.style.display = 'block';
-        updateReference();
-      });
-      bibleClose?.addEventListener('click', () => { if (bibleWrap) bibleWrap.style.display = 'none'; });
-    }
-
     const pedidoForm = document.getElementById('pedido-form');
     const pedidoComments = document.getElementById('pedido-comments');
-    const comments = JSON.parse(localStorage.getItem('podben_prayer_comments') || '[]');
-    const renderComments = () => { pedidoComments.innerHTML = ''; comments.forEach((c) => pedidoComments.innerHTML += `<article class="card"><strong>${c.nome}</strong> <span class="meta">(${c.celular}) • ${c.data}</span><p>${c.mensagem}</p></article>`); };
+    let comments = [];
+    const renderComments = () => { pedidoComments.innerHTML = ''; comments.forEach((c) => { const phone = String(c.celular || '').replace(/[()]/g, '').trim(); pedidoComments.innerHTML += `<article class="card prayer-comment-card"><div class="prayer-comment-head"><strong>${c.nome}</strong><span class="meta">${phone ? `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z"/></svg> ${phone}` : ''}</span></div><p class="prayer-comment-text">${c.mensagem}</p><p class="meta prayer-comment-date">${fmt(c.createdAt)}</p>`; }); };
+    async function loadPrayerComments() {
+      try {
+        const resp = await fetch(`${API_BASE}/public/prayer`);
+        if (resp.ok) {
+          const data = await resp.json();
+          if (Array.isArray(data.items)) comments = data.items;
+        }
+      } catch (_err) {}
+      renderComments();
+    }
+    loadPrayerComments();
     pedidoForm?.addEventListener('submit', async (e) => {
       e.preventDefault();
       const action = e.submitter?.value || 'comment';
       const fd = new FormData(pedidoForm);
-      const payload = { nome: fd.get('nome'), celular: fd.get('celular'), mensagem: fd.get('mensagem'), data: fmt(new Date().toISOString()) };
+      const payload = { nome: fd.get('nome'), celular: fd.get('celular'), mensagem: fd.get('mensagem') };
       if (action === 'whatsapp') window.open(`https://wa.me/5567996248550?text=${encodeURIComponent(`Pedido de oração - PODBEN\nNome: ${payload.nome}\nCelular: ${payload.celular}\nMensagem: ${payload.mensagem}`)}`, '_blank');
       if (action === 'comment') {
         const resp = await fetch(`${API_BASE}/public/prayer`, {
@@ -597,14 +633,12 @@
           body: JSON.stringify({ ...payload, honeypot: '', recaptchaToken: window.__recaptchaToken || '' }),
         });
         if (resp.ok) {
-          comments.unshift(payload);
-          localStorage.setItem('podben_prayer_comments', JSON.stringify(comments));
-          renderComments();
+          showToast('Pedido de oração enviado! Aguardando aprovação do moderador.', 'info');
+          loadPrayerComments();
         }
       }
       pedidoForm.reset();
     });
-    renderComments();
   }
 
   function renderNoticias() {
@@ -703,7 +737,7 @@
     const article = document.getElementById('single-news');
     if (!article) return;
     const id = Number(new URLSearchParams(location.search).get('id'));
-    const post = [...getAdminNews().map((n) => ({ ...n, local: true })), ...data.news].find((n) => n.id === id);
+    const post = [...(remoteNewsLoaded ? remoteNewsCache : []), ...getAdminNews().map((n) => ({ ...n, local: true })), ...data.news].find((n) => n.id === id);
     if (!post) {
       article.innerHTML = `<div class="news-empty-state"><h1>Notícia não encontrada</h1><p class="meta">Não foi possível carregar essa matéria.</p><a class="btn" href="noticias.html">Voltar para notícias</a></div>`;
       return;
@@ -796,10 +830,9 @@
     }
 
     const key = `podben_news_comments_${id}`;
-    const comments = JSON.parse(localStorage.getItem(key) || '[]').map((c, idx) => ({ ...c, id: c.id || Date.now() + idx + 1 }));
+    let comments = [];
     const session = getSession();
     const viewerToken = getCommentAuthorToken();
-    localStorage.setItem(key, JSON.stringify(comments));
     const list = document.getElementById('news-comments');
     const canManageNewsComment = (comment) => session?.role === 'alpha_admin'
       || (session?.username && session.username === comment.authorUsername)
@@ -813,36 +846,64 @@
         const actions = canManageNewsComment(c)
           ? `<div class="row-actions comment-actions"><button type="button" class="btn-outline edit-news-comment" data-id="${c.id}">Editar</button><button type="button" class="btn-outline delete-news-comment" data-id="${c.id}">Excluir</button></div>`
           : '';
-        list.innerHTML += `<article class="card"><strong>${c.nome}</strong> <span class="meta">${c.data}${c.editedAt ? ` • editado em ${c.editedAt}` : ''}</span><p>${c.texto}</p>${actions}</article>`;
+        list.innerHTML += `<article class="card"><strong>${c.authorName}</strong> <span class="meta">${fmt(c.createdAt)}${c.updatedAt !== c.createdAt ? ` • editado` : ''}</span><p>${c.content}</p>${actions}</article>`;
       });
     };
-    document.getElementById('news-comment-form')?.addEventListener('submit', (e) => {
+    async function loadNewsComments() {
+      try {
+        const resp = await fetch(`${API_BASE}/comments?context=news&contextId=${id}`);
+        if (resp.ok) {
+          const data = await resp.json();
+          if (Array.isArray(data.items)) comments = data.items;
+        }
+      } catch (_err) {}
+      render();
+    }
+    loadNewsComments();
+    document.getElementById('news-comment-form')?.addEventListener('submit', async (e) => {
       e.preventDefault();
       const fd = new FormData(e.target);
-      comments.unshift({ id: Date.now() + Math.floor(Math.random() * 1000), nome: fd.get('nome'), texto: fd.get('texto'), data: fmt(new Date().toISOString()), authorUsername: session?.username || null, authorToken: viewerToken });
-      localStorage.setItem(key, JSON.stringify(comments));
+      const nome = fd.get('nome');
+      const texto = fd.get('texto');
+      try {
+        await fetch(`${API_BASE}/comments`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ context: 'news', contextId: id, authorName: nome, authorPhoto: '', authorUsername: session?.username || null, authorToken: viewerToken, content: texto }),
+        });
+      } catch (_err) {}
       e.target.reset();
-      render();
+      showToast('Comentário enviado! Aguardando aprovação do administrador.', 'info');
     });
-    list?.addEventListener('click', (e) => {
-      const id = Number(e.target.dataset.id);
-      if (!id) return;
-      const idx = comments.findIndex((c) => Number(c.id) === id);
-      if (idx < 0 || !canManageNewsComment(comments[idx])) return;
+    list?.addEventListener('click', async (e) => {
+      const commentId = Number(e.target.dataset.id);
+      if (!commentId) return;
+      const target = comments.find((c) => Number(c.id) === commentId);
+      if (!target || !canManageNewsComment(target)) return;
       if (e.target.classList.contains('delete-news-comment')) {
-        comments.splice(idx, 1);
+        try {
+          await fetch(`${API_BASE}/comments/${commentId}`, {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ authorToken: viewerToken }),
+          });
+        } catch (_err) {}
+        loadNewsComments();
       }
       if (e.target.classList.contains('edit-news-comment')) {
-        const nextText = window.prompt('Editar comentário:', comments[idx].texto || '');
+        const nextText = window.prompt('Editar comentário:', target.content || '');
         if (!nextText || !nextText.trim()) return;
-        comments[idx].texto = nextText.trim();
-        comments[idx].editedAt = fmt(new Date().toISOString());
+        try {
+          await fetch(`${API_BASE}/comments/${commentId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ authorToken: viewerToken, content: nextText.trim() }),
+          });
+        } catch (_err) {}
+        loadNewsComments();
       }
-      localStorage.setItem(key, JSON.stringify(comments));
-      render();
     });
     enhanceGoogleComments();
-    render();
   }
 
   function renderGaleria() {
@@ -1201,7 +1262,7 @@
         .filter((item) => currentTheme === 'Todos' || item.editorial === currentTheme)
         .forEach((item) => {
           const { colunista, posts, latestPost, editorial } = item;
-          wrap.innerHTML += `<article class="col-card columnist-editorial-card"><img class="avatar" src="${colunista.photo}" alt="${colunista.name}"/><p class="meta"><span class="news-badge">${editorial}</span> ${posts.length} ${posts.length === 1 ? 'artigo' : 'artigos'}</p><h3><a href="colunista.html?id=${colunista.id}">${colunista.name}</a></h3><p>${colunista.bio}</p><p class="meta">Destaque recente: ${latestPost?.title || 'Nova coluna em breve.'}</p><p class="columnist-signature">“Escrevo para aproximar fé e prática diária com responsabilidade cristã.”</p><div class="row-actions"><a class="btn-outline" href="colunista.html?id=${colunista.id}">Ver perfil</a><a class="btn" href="${latestPost ? `coluna.html?id=${latestPost.id}` : `colunista.html?id=${colunista.id}`}">Ler artigos</a></div></article>`;
+          wrap.innerHTML += `<article class="col-card columnist-editorial-card"><img class="avatar" src="${colunista.photo}" alt="${colunista.name}"/><p class="meta"><span class="news-badge">${editorial}</span> ${posts.length} ${posts.length === 1 ? 'artigo' : 'artigos'}</p><h3><a href="colunista.html?id=${colunista.id}">${colunista.name}</a></h3><p class="columnist-signature">${colunista.bio || 'Colunista PODBEN'}</p><div class="row-actions"><a class="btn-outline" href="colunista.html?id=${colunista.id}">Ver perfil</a><a class="btn" href="${latestPost ? `coluna.html?id=${latestPost.id}` : `colunista.html?id=${colunista.id}`}">Ler artigos</a></div></article>`;
         });
       if (!wrap.children.length) wrap.innerHTML = '<p class="meta">Nenhum colunista encontrado neste filtro.</p>';
     };
@@ -1250,7 +1311,7 @@
       return 'Vida Cristã';
     })();
 
-    head.innerHTML = `<img class="avatar" src="${columnist.photo}" alt="${columnist.name}"/><div class="stack"><p class="meta"><span class="news-badge">${editorial}</span> ${posts.length} ${posts.length === 1 ? 'publicação' : 'publicações'}</p><h1>${columnist.name}</h1><p class="columnist-hero-bio">${columnist.bio || 'Colunista PODBEN'}</p><p class="columnist-hero-quote">${columnist.bio || 'Escrevo para conectar fé, consciência e prática diária com esperança e responsabilidade cristã.'}</p></div>`;
+    head.innerHTML = `<img class="avatar" src="${columnist.photo}" alt="${columnist.name}"/><div class="stack"><p class="meta"><span class="news-badge">${editorial}</span> ${posts.length} ${posts.length === 1 ? 'publicação' : 'publicações'}</p><h1>${columnist.name}</h1><p class="columnist-hero-quote">${columnist.bio || 'Escrevo para conectar fé, consciência e prática diária com esperança e responsabilidade cristã.'}</p></div>`;
     const featuredWrap = document.getElementById('colunista-featured');
     if (featuredWrap) {
       featuredWrap.innerHTML = latest
@@ -1340,10 +1401,8 @@
 
     const formBox = document.getElementById('comment-form-box');
     const list = document.getElementById('comments');
-    const key = `podben_col_comments_${id}`;
-    const comments = JSON.parse(localStorage.getItem(key) || '[]').map((c, idx) => ({ ...c, id: c.id || Date.now() + idx + 1 }));
+    let comments = [];
     const viewerToken = getCommentAuthorToken();
-    localStorage.setItem(key, JSON.stringify(comments));
     document.getElementById('show-comment')?.addEventListener('click', () => {
       formBox.classList.remove('hidden');
       formBox.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -1381,36 +1440,62 @@
         const actions = canManageColumnComment(c)
           ? `<div class="row-actions comment-actions"><button type="button" class="btn-outline edit-col-comment" data-id="${c.id}">Editar</button><button type="button" class="btn-outline delete-col-comment" data-id="${c.id}">Excluir</button></div>`
           : '';
-        list.innerHTML += `<article class="comment card"><img class="avatar" src="${c.foto || 'https://i.pravatar.cc/90?img=3'}" alt="${c.nome}"/><div><strong>${c.nome}</strong><p class="meta">${c.data}${c.editedAt ? ` • editado em ${c.editedAt}` : ''}</p><p>${c.texto}</p>${actions}</div></article>`;
+        list.innerHTML += `<article class="comment card"><img class="avatar" src="${c.authorPhoto || 'https://i.pravatar.cc/90?img=3'}" alt="${c.authorName}"/><div><strong>${c.authorName}</strong><p class="meta">${fmt(c.createdAt)}${c.updatedAt !== c.createdAt ? ` • editado` : ''}</p><p>${c.content}</p>${actions}</div></article>`;
       });
     };
-    document.getElementById('comment-form')?.addEventListener('submit', (e) => {
+    async function loadColumnComments() {
+      try {
+        const resp = await fetch(`${API_BASE}/comments?context=column&contextId=${id}`);
+        if (resp.ok) {
+          const data = await resp.json();
+          if (Array.isArray(data.items)) comments = data.items;
+        }
+      } catch (_err) {}
+      render();
+    }
+    loadColumnComments();
+    document.getElementById('comment-form')?.addEventListener('submit', async (e) => {
       e.preventDefault();
       const fd = new FormData(e.target);
-      comments.unshift({ id: Date.now() + Math.floor(Math.random() * 1000), nome: fd.get('nome'), foto: fd.get('foto'), texto: fd.get('texto'), data: fmt(new Date().toISOString()), authorUsername: session?.username || null, authorToken: viewerToken });
-      localStorage.setItem(key, JSON.stringify(comments));
+      try {
+        await fetch(`${API_BASE}/comments`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ context: 'column', contextId: id, authorName: fd.get('nome'), authorPhoto: fd.get('foto') || '', authorUsername: session?.username || null, authorToken: viewerToken, content: fd.get('texto') }),
+        });
+      } catch (_err) {}
       e.target.reset();
-      render();
+      showToast('Comentário enviado! Aguardando aprovação do administrador.', 'info');
     });
-    list?.addEventListener('click', (e) => {
-      const idComment = Number(e.target.dataset.id);
-      if (!idComment) return;
-      const idx = comments.findIndex((c) => Number(c.id) === idComment);
-      if (idx < 0 || !canManageColumnComment(comments[idx])) return;
+    list?.addEventListener('click', async (e) => {
+      const commentId = Number(e.target.dataset.id);
+      if (!commentId) return;
+      const target = comments.find((c) => Number(c.id) === commentId);
+      if (!target || !canManageColumnComment(target)) return;
       if (e.target.classList.contains('delete-col-comment')) {
-        comments.splice(idx, 1);
+        try {
+          await fetch(`${API_BASE}/comments/${commentId}`, {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ authorToken: viewerToken }),
+          });
+        } catch (_err) {}
+        loadColumnComments();
       }
       if (e.target.classList.contains('edit-col-comment')) {
-        const nextText = window.prompt('Editar comentário:', comments[idx].texto || '');
+        const nextText = window.prompt('Editar comentário:', target.content || '');
         if (!nextText || !nextText.trim()) return;
-        comments[idx].texto = nextText.trim();
-        comments[idx].editedAt = fmt(new Date().toISOString());
+        try {
+          await fetch(`${API_BASE}/comments/${commentId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ authorToken: viewerToken, content: nextText.trim() }),
+          });
+        } catch (_err) {}
+        loadColumnComments();
       }
-      localStorage.setItem(key, JSON.stringify(comments));
-      render();
     });
     enhanceGoogleComments();
-    render();
   }
 
   function renderColumnistEditor() {
@@ -2071,7 +2156,9 @@
     const galleryUploadBtn = document.getElementById('gallery-upload-btn');
     const galleryUploadFeedback = document.getElementById('gallery-upload-feedback');
     const updateDashboardSummary = () => {
-      const newsItems = getAdminNews();
+      const remote = remoteNewsLoaded ? remoteNewsCache : [];
+      const local = getAdminNews();
+      const newsItems = [...remote, ...local.filter((n) => !remote.some((r) => r.id === n.id))];
       const galleryItems = getAdminGallery();
       const studies = remoteStudiesLoaded ? remoteStudiesCache : (Array.isArray(data?.studies) ? data.studies : []);
       const recentWindow = Date.now() - (7 * 24 * 60 * 60 * 1000);
@@ -2087,7 +2174,9 @@
         updateDashboardSummary();
         return;
       }
-      let items = getAdminNews();
+      const remote = remoteNewsLoaded ? remoteNewsCache : [];
+      const local = getAdminNews();
+      let items = [...remote, ...local.filter((n) => !remote.some((r) => r.id === n.id))];
       const term = String(newsSearch?.value || '').trim().toLowerCase();
       const filter = String(newsFilter?.value || 'all');
       const sort = String(newsSort?.value || 'recent');
@@ -2096,7 +2185,8 @@
       if (sort === 'oldest') items = items.sort((a, b) => new Date(a.createdAt || 0) - new Date(b.createdAt || 0));
       if (sort === 'title') items = items.sort((a, b) => String(a.title || '').localeCompare(String(b.title || ''), 'pt-BR'));
       list.innerHTML = '';
-      const categories = [...new Set(getAdminNews().map((n) => String(n.category || '').trim()).filter(Boolean))];
+      const allCategories = [...remote, ...local];
+      const categories = [...new Set(allCategories.map((n) => String(n.category || '').trim()).filter(Boolean))];
       if (newsFilter) {
         const prev = newsFilter.value;
         newsFilter.innerHTML = '<option value="all">Todas categorias</option>' + categories.map((cat) => `<option value="${cat}">${cat}</option>`).join('');
@@ -2128,27 +2218,24 @@
       enhanceRichEditors();
     };
 
-    form?.addEventListener('submit', (e) => {
+    form?.addEventListener('submit', async (e) => {
       e.preventDefault();
       const fd = new FormData(form);
-      const items = getAdminNews();
-      items.unshift({
-        id: Date.now(),
-        title: fd.get('title'),
-        text: fd.get('text'),
-        image: String(fd.get('image') || '').trim(),
-        video: fd.get('video'),
-        link: fd.get('link'),
-        category: fd.get('category'),
-        createdAt: new Date().toISOString(),
-        source: 'PODBEN',
-        location: 'Aquidauana/MS',
-        status: 'published',
-      });
-      setAdminNews(items);
-      form.reset();
-      if (newsFeedback) newsFeedback.textContent = 'Publicação criada com sucesso.';
-      render();
+      try {
+        const saved = await apiCreateNews({
+          category: fd.get('category'),
+          title: fd.get('title'),
+          text: fd.get('text'),
+          image: String(fd.get('image') || '').trim(),
+          video: fd.get('video') || '',
+          link: fd.get('link') || '',
+        });
+        form.reset();
+        if (newsFeedback) newsFeedback.textContent = 'Publicação criada com sucesso no banco de dados.';
+        render();
+      } catch (err) {
+        if (newsFeedback) newsFeedback.textContent = err.message || 'Erro ao publicar.';
+      }
     });
     previewBtn?.addEventListener('click', () => {
       if (!form) return;
@@ -2300,24 +2387,50 @@
       renderGalleryAdmin();
     });
 
-    document.addEventListener('click', (e) => {
+    document.addEventListener('click', async (e) => {
       if (e.target.classList.contains('delete-news')) {
         const id = Number(e.target.dataset.id);
+        try {
+          await apiDeleteNews(id);
+        } catch (_err) {}
         setAdminNews(getAdminNews().filter((n) => n.id !== id));
         render();
       }
       if (e.target.classList.contains('save-news')) {
         const id = Number(e.target.dataset.id);
         const val = (field) => document.querySelector(`[data-id="${id}"][data-field="${field}"]`)?.value || '';
-        const items = getAdminNews().map((n) => n.id === id ? { ...n, title: val('title'), text: val('text'), image: val('image'), video: val('video'), link: val('link'), category: val('category'), status: val('status') || 'published' } : n);
-        setAdminNews(items);
+        try {
+          await apiUpdateNews(id, {
+            category: val('category'),
+            title: val('title'),
+            text: val('text'),
+            image: val('image'),
+            video: val('video'),
+            link: val('link'),
+          });
+          if (newsFeedback) newsFeedback.textContent = 'Notícia atualizada no banco de dados.';
+        } catch (_err) {
+          if (newsFeedback) newsFeedback.textContent = 'Erro ao atualizar: ' + _err.message;
+        }
         render();
       }
       if (e.target.classList.contains('duplicate-news')) {
         const id = Number(e.target.dataset.id);
-        const source = getAdminNews().find((n) => n.id === id);
+        const source = remoteNewsLoaded ? remoteNewsCache.find((n) => n.id === id) : getAdminNews().find((n) => n.id === id);
         if (!source) return;
-        setAdminNews([{ ...source, id: Date.now(), title: `${source.title} (cópia)`, createdAt: new Date().toISOString() }, ...getAdminNews()]);
+        try {
+          await apiCreateNews({
+            category: source.category,
+            title: `${source.title} (cópia)`,
+            text: source.text,
+            image: source.image || '',
+            video: source.video || '',
+            link: source.link || '',
+          });
+          if (newsFeedback) newsFeedback.textContent = 'Notícia duplicada no banco de dados.';
+        } catch (_err) {
+          if (newsFeedback) newsFeedback.textContent = 'Erro ao duplicar: ' + _err.message;
+        }
         render();
       }
       if (e.target.classList.contains('delete-gallery-item')) {
@@ -2969,6 +3082,176 @@
     loadUsers();
   }
 
+  function renderModerationPanel() {
+    const listWrap = document.getElementById('mod-comments-list');
+    const statsWrap = document.getElementById('mod-stats');
+    const statusFilter = document.getElementById('mod-status-filter');
+    const contextFilter = document.getElementById('mod-context-filter');
+    const typeFilter = document.getElementById('mod-type-filter');
+    if (!listWrap) return;
+
+    const esc = (v) => String(v ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    let currentStatus = 'pending';
+    let currentContext = 'all';
+    let currentType = 'comments';
+    let itemsCache = [];
+
+    const statusColors = { pending: '#f59e0b', approved: '#16a34a', rejected: '#dc2626' };
+    const statusLabels = { pending: 'Pendente', approved: 'Aprovado', rejected: 'Rejeitado' };
+
+    async function loadStats() {
+      statsWrap.innerHTML = '';
+      try {
+        if (currentType === 'comments') {
+          const resp = await fetch(`${API_BASE}/comments/stats`, { credentials: 'include' });
+          if (resp.ok) {
+            const stats = await resp.json();
+            statsWrap.innerHTML = `
+              <article class="card admin-stat-card" style="padding:.6rem .8rem"><p class="meta stat-label"><span class="stat-dot stat-recent" aria-hidden="true"></span>Pendentes</p><h3 style="font-size:1.3rem">${stats.pending || 0}</h3></article>
+              <article class="card admin-stat-card" style="padding:.6rem .8rem"><p class="meta stat-label"><span class="stat-dot stat-published" aria-hidden="true"></span>Aprovados</p><h3 style="font-size:1.3rem">${stats.approved || 0}</h3></article>
+              <article class="card admin-stat-card" style="padding:.6rem .8rem"><p class="meta stat-label"><span class="stat-dot stat-draft" aria-hidden="true"></span>Rejeitados</p><h3 style="font-size:1.3rem">${stats.rejected || 0}</h3></article>
+            `;
+          }
+        }
+      } catch (_err) {}
+    }
+
+    async function loadItems() {
+      itemsCache = [];
+      try {
+        if (currentType === 'comments') {
+          let url = `${API_BASE}/comments/all`;
+          const params = [];
+          if (currentStatus !== 'all') params.push(`status=${currentStatus}`);
+          if (currentContext !== 'all') params.push(`context=${currentContext}`);
+          if (params.length) url += '?' + params.join('&');
+          const resp = await fetch(url, { credentials: 'include' });
+          if (resp.ok) {
+            const data = await resp.json();
+            if (Array.isArray(data.items)) itemsCache = data.items;
+          }
+        } else {
+          let url = `${API_BASE}/public/prayer/all`;
+          if (currentStatus !== 'all') url += `?status=${currentStatus}`;
+          const resp = await fetch(url, { credentials: 'include' });
+          if (resp.ok) {
+            const data = await resp.json();
+            if (Array.isArray(data.items)) itemsCache = data.items;
+          }
+        }
+      } catch (_err) {}
+      renderList();
+    }
+
+    function renderList() {
+      listWrap.innerHTML = '';
+      if (!itemsCache.length) {
+        listWrap.innerHTML = '<p class="meta" style="padding:1rem;text-align:center">Nenhum item encontrado.</p>';
+        return;
+      }
+      itemsCache.forEach((item) => {
+        if (currentType === 'comments') {
+          const ctxLabel = item.context === 'news' ? 'Notícia' : 'Coluna';
+          listWrap.innerHTML += `
+            <article class="card admin-news-item" style="padding:.85rem">
+              <div style="display:flex;gap:.65rem;align-items:start">
+                <img src="${esc(item.authorPhoto || 'https://i.pravatar.cc/90?img=3')}" alt="${esc(item.authorName)}" style="width:40px;height:40px;border-radius:50%;object-fit:cover;border:2px solid #d5e3f9;flex-shrink:0"/>
+                <div style="flex:1;min-width:0">
+                  <div style="display:flex;flex-wrap:wrap;align-items:center;gap:.35rem .6rem;margin-bottom:.25rem">
+                    <strong style="color:#1c355f">${esc(item.authorName)}</strong>
+                    <span style="display:inline-block;padding:.15rem .45rem;border-radius:999px;font-size:.72rem;font-weight:700;background:${statusColors[item.status] || '#6b7280'}20;color:${statusColors[item.status] || '#6b7280'};border:1px solid ${statusColors[item.status] || '#6b7280'}40">${statusLabels[item.status] || item.status}</span>
+                    <span class="news-badge" style="font-size:.7rem">${ctxLabel}</span>
+                    <span class="meta" style="font-size:.78rem">${fmt(item.createdAt)}</span>
+                  </div>
+                  <p style="margin:0 0 .35rem;color:#2c4060;font-size:.92rem;line-height:1.5">${esc(item.content)}</p>
+                  <div class="row-actions" style="margin-top:.4rem">
+                    ${item.status !== 'approved' ? `<button class="btn mod-approve" data-id="${item.id}" type="button" style="padding:.35rem .65rem;font-size:.8rem;background:linear-gradient(135deg,#16a34a,#22c55e)">Aprovar</button>` : ''}
+                    ${item.status !== 'rejected' ? `<button class="btn-outline mod-reject" data-id="${item.id}" type="button" style="padding:.35rem .65rem;font-size:.8rem;border-color:#fecaca;color:#dc2626">Rejeitar</button>` : ''}
+                    <button class="btn-outline mod-delete" data-id="${item.id}" type="button" style="padding:.35rem .65rem;font-size:.8rem;border-color:#fecaca;color:#dc2626">Excluir</button>
+                  </div>
+                </div>
+              </div>
+            </article>
+          `;
+        } else {
+          listWrap.innerHTML += `
+            <article class="card admin-news-item" style="padding:.85rem">
+              <div style="display:flex;gap:.65rem;align-items:start">
+                <div style="width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,#25D366,#128C7E);display:grid;place-items:center;color:#fff;font-size:1.1rem;flex-shrink:0">🙏</div>
+                <div style="flex:1;min-width:0">
+                  <div style="display:flex;flex-wrap:wrap;align-items:center;gap:.35rem .6rem;margin-bottom:.25rem">
+                    <strong style="color:#1c355f">${esc(item.nome)}</strong>
+                    <span style="display:inline-block;padding:.15rem .45rem;border-radius:999px;font-size:.72rem;font-weight:700;background:${statusColors[item.status] || '#6b7280'}20;color:${statusColors[item.status] || '#6b7280'};border:1px solid ${statusColors[item.status] || '#6b7280'}40">${statusLabels[item.status] || item.status}</span>
+                    ${item.celular ? `<span class="meta" style="font-size:.78rem">📞 ${esc(item.celular)}</span>` : ''}
+                    <span class="meta" style="font-size:.78rem">${fmt(item.createdAt)}</span>
+                  </div>
+                  <p style="margin:0 0 .35rem;color:#2c4060;font-size:.92rem;line-height:1.5;font-style:italic">${esc(item.mensagem)}</p>
+                  <div class="row-actions" style="margin-top:.4rem">
+                    ${item.status !== 'approved' ? `<button class="btn mod-approve" data-id="${item.id}" type="button" style="padding:.35rem .65rem;font-size:.8rem;background:linear-gradient(135deg,#16a34a,#22c55e)">Aprovar</button>` : ''}
+                    ${item.status !== 'rejected' ? `<button class="btn-outline mod-reject" data-id="${item.id}" type="button" style="padding:.35rem .65rem;font-size:.8rem;border-color:#fecaca;color:#dc2626">Rejeitar</button>` : ''}
+                    <button class="btn-outline mod-delete" data-id="${item.id}" type="button" style="padding:.35rem .65rem;font-size:.8rem;border-color:#fecaca;color:#dc2626">Excluir</button>
+                  </div>
+                </div>
+              </div>
+            </article>
+          `;
+        }
+      });
+    }
+
+    typeFilter?.addEventListener('change', () => {
+      currentType = typeFilter.value;
+      if (contextFilter) contextFilter.style.display = currentType === 'comments' ? '' : 'none';
+      loadStats();
+      loadItems();
+    });
+    statusFilter?.addEventListener('change', () => { currentStatus = statusFilter.value; loadItems(); });
+    contextFilter?.addEventListener('change', () => { currentContext = contextFilter.value; loadItems(); });
+
+    listWrap?.addEventListener('click', async (e) => {
+      const approveBtn = e.target.closest('.mod-approve');
+      const rejectBtn = e.target.closest('.mod-reject');
+      const deleteBtn = e.target.closest('.mod-delete');
+      if (!approveBtn && !rejectBtn && !deleteBtn) return;
+      const id = Number((approveBtn || rejectBtn || deleteBtn).dataset.id);
+      if (!id) return;
+
+      if (currentType === 'comments') {
+        if (deleteBtn) {
+          if (!confirm('Excluir este comentário?')) return;
+          try { await fetch(`${API_BASE}/comments/${id}`, { method: 'DELETE', credentials: 'include' }); } catch (_err) {}
+        } else {
+          const newStatus = approveBtn ? 'approved' : 'rejected';
+          try {
+            await fetch(`${API_BASE}/comments/${id}/status`, {
+              method: 'PUT', credentials: 'include', headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ status: newStatus }),
+            });
+          } catch (_err) {}
+        }
+      } else {
+        if (deleteBtn) {
+          if (!confirm('Excluir este pedido de oração?')) return;
+          try { await fetch(`${API_BASE}/public/prayer/${id}`, { method: 'DELETE', credentials: 'include' }); } catch (_err) {}
+        } else {
+          const newStatus = approveBtn ? 'approved' : 'rejected';
+          try {
+            await fetch(`${API_BASE}/public/prayer/${id}/status`, {
+              method: 'PUT', credentials: 'include', headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ status: newStatus }),
+            });
+          } catch (_err) {}
+        }
+      }
+      loadItems();
+      if (currentType === 'comments') loadStats();
+    });
+
+    if (contextFilter) contextFilter.style.display = currentType === 'comments' ? '' : 'none';
+    loadStats();
+    loadItems();
+  }
+
   menuMobile();
   enhanceRichEditors();
   const refreshToolbarState = (toolbar) => {
@@ -3065,7 +3348,7 @@
   injectSearchBar();
   renderFooter();
   renderVisitorCounter();
-  Promise.all([fetchRemoteStudies(), fetchRemoteColumnists()]).then(() => {
+  Promise.all([fetchRemoteStudies(), fetchRemoteColumnists(), fetchRemoteNews()]).then(() => {
     renderHome();
     renderNoticias();
     renderNoticiaDetalhe();
@@ -3081,6 +3364,7 @@
     renderAdminDashboard();
     renderAdminStudiesDashboard();
     renderAdminUsers();
+    renderModerationPanel();
   });
 
   const scrollBtn = document.createElement('button');

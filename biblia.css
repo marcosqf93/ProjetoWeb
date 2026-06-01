@@ -1,0 +1,26 @@
+.biblia-page{gap:1.2rem;max-width:1000px}
+.biblia-hero{text-align:center;padding:1.5rem;background:linear-gradient(140deg,#fff,#edf4ff);border-radius:var(--radius);border:1px solid var(--line)}
+.biblia-hero h1{margin:0 0 .3rem;font-size:clamp(1.8rem,4vw,2.5rem);color:var(--text)}
+.biblia-books-section{display:grid;grid-template-columns:1fr 1fr;gap:1rem}
+.biblia-card{background:linear-gradient(165deg,#fff,#f8f7ff);border:1px solid rgba(108,59,255,.1);border-radius:var(--radius);padding:1.2rem;box-shadow:var(--shadow)}
+.biblia-card h2{margin:0 0 .8rem;font-size:1.2rem;color:var(--primary)}
+.biblia-book-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:.2rem .8rem}
+.biblia-book-grid a{color:var(--primary);font-size:.92rem;padding:.25rem 0;display:block;border-radius:6px;transition:all .2s ease;text-decoration:none}
+.biblia-book-grid a:hover{color:var(--primary-dark);background:rgba(108,59,255,.06);padding-left:.3rem}
+.biblia-chapters-section{display:grid;gap:1rem}
+.biblia-chapters-header{display:flex;align-items:center;gap:1rem;flex-wrap:wrap}
+.biblia-chapters-header h2{margin:0}
+.biblia-chapter-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(52px,1fr));gap:.5rem}
+.biblia-chapter-grid button{padding:.65rem;border:1px solid var(--line);border-radius:10px;background:#fff;font-weight:700;font-size:.95rem;color:var(--text);cursor:pointer;transition:all .2s ease}
+.biblia-chapter-grid button:hover{background:linear-gradient(135deg,var(--primary),var(--primary-dark));color:#fff;border-color:var(--primary);transform:translateY(-2px);box-shadow:0 4px 12px rgba(108,59,255,.25)}
+.biblia-reader-section{display:grid;gap:1rem}
+.biblia-reader-header{display:flex;justify-content:space-between;align-items:center;gap:.75rem;flex-wrap:wrap}
+.biblia-reader-nav{display:flex;align-items:center;gap:.5rem;flex-wrap:wrap}
+.biblia-reader-nav .meta{font-weight:700;font-size:1rem;color:var(--text);min-width:120px;text-align:center}
+.biblia-reader-content{background:linear-gradient(165deg,#fff,#f8f7ff);border:1px solid rgba(108,59,255,.1);border-radius:var(--radius);padding:1.5rem 2rem;box-shadow:var(--shadow);line-height:2;font-size:1.05rem}
+.biblia-reader-content .verse{margin-bottom:.6rem}
+.biblia-reader-content .verse-num{color:var(--primary);font-weight:700;font-size:.85rem;margin-right:.25rem}
+.biblia-loading{text-align:center;padding:2rem;color:var(--muted)}
+.biblia-error{text-align:center;padding:1.5rem;color:var(--accent-red);background:#fef2f2;border:1px solid #fecaca;border-radius:10px}
+@media(max-width:768px){.biblia-books-section{grid-template-columns:1fr}.biblia-book-grid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:640px){.biblia-book-grid{grid-template-columns:repeat(2,1fr)}.biblia-reader-content{padding:1rem 1.2rem;font-size:1rem}}

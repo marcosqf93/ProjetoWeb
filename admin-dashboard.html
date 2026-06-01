@@ -1,4 +1,228 @@
-<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>Painel Admin Alpha | PODBEN</title><link rel="stylesheet" href="styles.css"/></head>
-<body><header class="topbar"><a class="logo" href="index.html"><img class="logo-img" src="https://i.ibb.co/yFXZ4Lhb/channels4-profile.jpg" alt="Logo PODBEN" onerror="this.style.display='none'"/>PODBEN <span>Admin Alpha</span></a><button id="menu-toggle">☰ Menu</button><nav id="menu"><a href="index.html">Início</a><a href="noticias.html">Notícias</a><a href="admin-dashboard.html">Painel Admin</a></nav></header>
-<main class="container"><section class="card"><div class="article-head"><h1>Painel do Admin - Publicar notícias</h1><button id="admin-logout" class="btn-outline">Sair</button></div><form id="admin-news-form" class="stack"><input name="category" placeholder="Categoria (ex.: Infraestrutura)" required/><input name="title" placeholder="Título" required/><textarea name="text" rows="5" placeholder="Texto da notícia" required></textarea><input name="image" placeholder="URL da imagem"/><input name="video" placeholder="URL embed de vídeo (opcional)"/><input name="link" placeholder="Link externo relacionado (opcional)"/><button type="submit">Publicar</button></form></section><section class="card"><h2>Publicações</h2><div id="admin-news-list" class="stack"></div></section></main>
-<footer id="site-footer" class="footer"></footer><script src="data.js"></script><script src="app.js"></script></body></html>
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Painel Admin Alpha | PODBEN</title>
+  <link rel="stylesheet" href="styles.css"/>
+</head>
+  <body class="admin-auth-body admin-home-bg">
+    <div class="page-loader"><div class="page-loader-spinner"></div></div>
+    <header class="admin-topbar">
+    <div class="admin-topbar-brand">
+      <a class="logo" href="index.html"><img class="logo-img" src="https://i.ibb.co/yFXZ4Lhb/channels4-profile.jpg" alt="Logo PODBEN" onerror="this.style.display='none'"/><span class="logo-text"><strong class="logo-title">PODBEN</strong><span class="logo-subtitle">Área interna • Notícias</span></span></a>
+      <p class="meta">Gestão editorial de notícias, mídia e operação diária</p>
+    </div>
+    <nav class="admin-nav" id="menu">
+      <a href="index.html">Início</a>
+      <a href="admin-estudos.html">Estudos</a>
+      <a href="admin-dashboard.html" aria-current="page">Notícias</a>
+      <a href="colunistas.html">Colunistas</a>
+      <a href="admin-galeria.html">Galeria</a>
+      <button id="admin-logout" class="btn-outline" type="button">Sair</button>
+    </nav>
+  </header>
+
+  <main class="container admin-studies-page admin-dashboard-modern admin-control-center">
+    <section class="card admin-studies-hero admin-hero-modern mouse-spotlight">
+      <div class="hero-glow glow-1"></div>
+      <div class="hero-glow glow-2"></div>
+      <div class="admin-hero-copy">
+        <p class="meta">PODBEN CONTROL CENTER</p>
+        <h1>Painel do Admin</h1>
+        <p class="meta">Centro editorial para notícias, estudos e galeria com foco em produtividade e governança.</p>
+        <div class="admin-quick-links" role="navigation" aria-label="Atalhos do painel">
+          <a href="index.html" class="btn-outline">Voltar ao início</a>
+          <button type="button" class="admin-tab-link btn-outline" data-admin-tab="dashboard">Dashboard</button>
+          <button type="button" class="admin-tab-link btn-outline" data-admin-tab="noticias">Notícias</button>
+          <a href="admin-estudos.html" class="btn-outline">Estudos</a>
+          <button type="button" class="admin-tab-link btn-outline" data-admin-tab="galeria">Galeria</button>
+          <button type="button" class="admin-tab-link btn-outline" data-admin-tab="colunistas">Colunistas</button>
+          <button type="button" class="admin-tab-link btn-outline" data-admin-tab="moderacao">Moderação</button>
+        </div>
+      </div>
+      <div class="admin-studies-stats">
+        <article class="card admin-stat-card"><p class="meta stat-label"><span class="stat-dot stat-news" aria-hidden="true"></span>Notícias</p><h3 id="summary-news-count">0</h3></article>
+        <article class="card admin-stat-card"><p class="meta stat-label"><span class="stat-dot stat-studies" aria-hidden="true"></span>Estudos</p><h3 id="summary-studies-count">0</h3></article>
+        <article class="card admin-stat-card"><p class="meta stat-label"><span class="stat-dot stat-gallery" aria-hidden="true"></span>Galeria</p><h3 id="summary-gallery-count">0</h3></article>
+        <article class="card admin-stat-card"><p class="meta stat-label"><span class="stat-dot stat-recent" aria-hidden="true"></span>Recentes (7 dias)</p><h3 id="summary-recent-count">0</h3></article>
+      </div>
+    </section>
+
+    <section class="admin-studies-layout">
+    <section class="card admin-publish-panel" data-admin-tab-panel="noticias">
+      <h2>Nova publicação</h2>
+      <form id="admin-news-form" class="stack">
+        <label class="editor-field-label" for="admin-category">Categoria</label>
+        <input id="admin-category" name="category" placeholder="Ex.: Infraestrutura" required/>
+
+        <label class="editor-field-label" for="admin-title">Título</label>
+        <input id="admin-title" name="title" placeholder="Título da notícia" required/>
+
+        <label class="editor-field-label" for="admin-text">Conteúdo</label>
+        <div class="text-toolbar rich-toolbar-pro" data-target="admin-text" aria-label="Ferramentas de formatação">
+          <div class="toolbar-group">
+            <button type="button" data-wrap="strong" title="Negrito"><strong>B</strong></button>
+            <button type="button" data-wrap="em" title="Itálico"><em>I</em></button>
+            <button type="button" data-wrap="u" title="Sublinhado"><u>U</u></button>
+          </div>
+          <span class="toolbar-sep" aria-hidden="true"></span>
+          <div class="toolbar-group">
+            <button type="button" data-wrap="align-left" title="Alinhar à esquerda">⬅</button>
+            <button type="button" data-wrap="align-center" title="Centralizar">↔</button>
+            <button type="button" data-wrap="align-right" title="Alinhar à direita">➡</button>
+            <button type="button" data-wrap="align-justify" title="Justificar">☰</button>
+          </div>
+          <span class="toolbar-sep" aria-hidden="true"></span>
+          <div class="toolbar-group">
+            <label class="toolbar-color-label" title="Cor do texto">A
+              <input type="color" data-wrap="text-color" value="#1f2b44" aria-label="Cor do texto"/>
+            </label>
+            <label class="toolbar-color-label" title="Cor de destaque">✦
+              <input type="color" data-wrap="highlight-color" value="#fff4a3" aria-label="Cor de destaque"/>
+            </label>
+          </div>
+          <span class="toolbar-sep" aria-hidden="true"></span>
+          <div class="toolbar-group">
+            <button type="button" data-wrap="h2">H2</button>
+            <button type="button" data-wrap="ul">Lista</button>
+            <button type="button" data-wrap="quote">Citação</button>
+            <button type="button" data-wrap="a">Link</button>
+          </div>
+        </div>
+        <textarea id="admin-text" name="text" rows="6" placeholder="Texto completo da notícia" required></textarea>
+
+        <label class="editor-field-label" for="admin-image">Imagem (URL)</label>
+        <div class="file-upload-row">
+          <input id="admin-image" name="image" placeholder="https://..."/>
+          <button type="button" id="admin-news-image-cloudinary" class="btn-outline">Upload Cloudinary</button>
+        </div>
+        <label class="editor-field-label" for="admin-news-image-file">Upload de imagem (opcional)</label>
+        <div class="file-upload-row">
+          <input id="admin-news-image-file" type="file" accept="image/*"/>
+          <button id="admin-news-image-upload-btn" type="button" class="btn-outline btn-upload">Enviar imagem</button>
+        </div>
+        <p id="admin-news-image-upload-feedback" class="meta" role="status" aria-live="polite"></p>
+
+        <label class="editor-field-label" for="admin-video">Vídeo embed (opcional)</label>
+        <input id="admin-video" name="video" placeholder="https://www.youtube.com/embed/..."/>
+
+        <label class="editor-field-label" for="admin-link">Link externo (opcional)</label>
+        <input id="admin-link" name="link" placeholder="https://..."/>
+
+        <div class="row-actions">
+          <button type="button" id="admin-news-preview-btn" class="btn-outline">Preview</button>
+          <button type="button" id="admin-news-draft-btn" class="btn-outline">Salvar rascunho</button>
+          <button type="reset" id="admin-news-clear-btn" class="btn-outline">Cancelar / Limpar</button>
+          <button type="submit">Publicar notícia</button>
+        </div>
+      </form>
+    </section>
+    <aside class="card admin-study-preview-panel">
+      <h2>Prévia e status</h2>
+      <p id="admin-news-feedback" class="meta" role="status" aria-live="polite"></p>
+      <article id="admin-news-preview-card" class="card admin-preview-card hidden" aria-live="polite"></article>
+      <p class="meta">Use este espaço para validar título, categoria e tom editorial antes de publicar.</p>
+    </aside>
+    </section>
+
+    <section class="card admin-list-panel" data-admin-tab-panel="noticias">
+      <h2>Publicações</h2>
+      <div class="admin-list-toolbar">
+        <input id="admin-news-search" type="search" placeholder="Buscar por título ou categoria"/>
+        <select id="admin-news-filter"><option value="all">Todas categorias</option></select>
+        <select id="admin-news-sort"><option value="recent">Mais recentes</option><option value="oldest">Mais antigas</option><option value="title">Título A-Z</option></select>
+      </div>
+      <div id="admin-news-list" class="stack"></div>
+    </section>
+
+    <section class="card admin-publish-panel" data-admin-tab-panel="galeria">
+      <h2>Galeria (Fotos e Vídeos)</h2>
+      <p class="meta">Cadastre itens da galeria por URL ou faça upload de imagens/vídeos.</p>
+      <form id="admin-gallery-form" class="stack">
+        <label class="editor-field-label" for="gallery-title">Título base</label>
+        <input id="gallery-title" name="title" placeholder="Ex.: Congresso de Louvor" required/>
+
+        <label class="editor-field-label" for="gallery-category">Categoria</label>
+        <input id="gallery-category" name="category" placeholder="Eventos, Cultos, Bastidores..." required/>
+
+        <label class="editor-field-label" for="gallery-type">Tipo de mídia</label>
+        <select id="gallery-type" name="mediaType">
+          <option value="image">Foto</option>
+          <option value="video">Vídeo</option>
+        </select>
+
+        <label class="editor-field-label" for="gallery-date">Data (opcional)</label>
+        <input id="gallery-date" name="createdAt" placeholder="2026-04-17T20:00:00-04:00"/>
+
+        <label class="editor-field-label" for="gallery-caption">Legenda</label>
+        <textarea id="gallery-caption" name="caption" rows="3" placeholder="Breve contexto do item visual" required></textarea>
+
+        <label class="editor-field-label" for="gallery-urls">URLs da mídia (uma por linha)</label>
+        <textarea id="gallery-urls" name="urls" rows="4" placeholder="https://...&#10;https://..." required></textarea>
+        <label class="editor-field-label" for="gallery-upload-files">Upload de mídia (opcional)</label>
+        <input id="gallery-upload-files" type="file" accept="image/*,video/mp4,video/webm,video/ogg" multiple/>
+        <button id="gallery-upload-btn" type="button" class="btn-outline">Enviar arquivos selecionados</button>
+        <p id="gallery-upload-feedback" class="meta" role="status" aria-live="polite"></p>
+
+        <button type="submit">Publicar na galeria</button>
+      </form>
+    </section>
+
+    <section class="card admin-list-panel" data-admin-tab-panel="galeria">
+      <h2>Itens da galeria publicados</h2>
+      <div id="admin-gallery-list" class="stack"></div>
+    </section>
+
+    <section class="card admin-publish-panel" data-admin-tab-panel="colunistas">
+      <h2>Novo colunista</h2>
+      <p class="meta">Cadastre colunistas com nome, e-mail, senha e foto de perfil.</p>
+      <p id="admin-user-feedback" class="meta" role="status" aria-live="polite"></p>
+      <form id="admin-user-form" class="stack admin-study-form">
+        <div class="admin-edit-grid">
+          <label class="admin-field"><span>Nome completo</span><input id="admin-user-name" name="name" placeholder="Nome do colunista" required/></label>
+          <label class="admin-field"><span>E-mail</span><input id="admin-user-email" name="email" type="email" placeholder="email@exemplo.com" required/></label>
+          <label class="admin-field"><span>Senha</span><input id="admin-user-password" name="password" type="password" minlength="8" placeholder="Mínimo 8 caracteres" required/></label>
+          <label class="admin-field" style="grid-column:1 / -1"><span>Foto de perfil (URL)</span><div class="file-upload-row"><input id="admin-user-photo" name="photoUrl" placeholder="https://..."/><button type="button" id="admin-user-photo-upload" class="btn-outline">Upload Cloudinary</button></div><span id="admin-user-photo-file-name" class="meta"></span></label>
+        </div>
+        <div class="row-actions">
+          <button type="submit">Cadastrar colunista</button>
+          <button type="reset" class="btn-outline">Limpar</button>
+        </div>
+      </form>
+    </section>
+
+    <section class="card admin-list-panel" data-admin-tab-panel="colunistas">
+      <h2>Colunistas cadastrados</h2>
+      <div id="admin-user-list" class="stack"></div>
+    </section>
+
+    <section class="card admin-list-panel" data-admin-tab-panel="moderacao" style="grid-column:1/-1">
+      <h2>Moderação</h2>
+      <div class="admin-list-toolbar" style="grid-template-columns:auto auto 1fr">
+        <select id="mod-type-filter">
+          <option value="comments">Comentários</option>
+          <option value="prayers">Pedidos de oração</option>
+        </select>
+        <select id="mod-status-filter">
+          <option value="pending">Aguardando aprovação</option>
+          <option value="all">Todos</option>
+          <option value="approved">Aprovados</option>
+          <option value="rejected">Rejeitados</option>
+        </select>
+        <select id="mod-context-filter">
+          <option value="all">Todos os contextos</option>
+          <option value="news">Notícias</option>
+          <option value="column">Colunas</option>
+        </select>
+        <div id="mod-stats" class="admin-studies-stats" style="gap:.5rem"></div>
+      </div>
+      <div id="mod-comments-list" class="stack"></div>
+    </section>
+  </main>
+
+  <script src="https://upload-widget.cloudinary.com/global/all.js" type="text/javascript"></script>
+  <script src="data.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

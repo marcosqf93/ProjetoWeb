@@ -4,68 +4,94 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>PODBEN | Página Inicial</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%237a2cff'/%3E%3Ctext x='50' y='68' text-anchor='middle' font-family='Poppins,Arial' font-weight='800' font-size='48' fill='white'%3EP%3C/text%3E%3C/svg%3E" />
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
+<div class="page-loader"><div class="page-loader-spinner"></div></div>
+<div id="scroll-progress"></div>
 <header class="topbar">
-  <a class="logo" href="index.html"><img class="logo-img" src="https://i.ibb.co/yFXZ4Lhb/channels4-profile.jpg" alt="Logo PODBEN" onerror="this.style.display='none'"/>PODBEN <span>Podcast & Vídeo Cristão</span></a>
+  <p class="visitor-header"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg> <span id="visitor-counter">0</span></p>
+  <a class="logo" href="index.html"><img class="logo-img" src="https://i.ibb.co/yFXZ4Lhb/channels4-profile.jpg" alt="Logo PODBEN" onerror="this.style.display='none'"/><span class="logo-text"><strong class="logo-title">PODBEN</strong><span class="logo-subtitle">Podcast & Vídeo Cristão</span></span></a>
   <button id="menu-toggle">☰ Menu</button>
   <nav id="menu">
-    <a href="index.html">Início</a><a href="quem-somos.html">Quem Somos</a><a href="noticias.html">Notícias</a><a href="galeria.html">Galeria</a><a href="estudos.html">Estudos Bíblicos</a><a href="colunistas.html">Colunistas</a><a href="admin.html">Login</a>
+    <a href="index.html">Início</a><a href="noticias.html">Notícias</a><a href="estudos.html">Estudos Bíblicos</a><a href="colunistas.html">Colunistas</a><a href="galeria.html">Galeria</a><a href="quem-somos.html">Quem Somos</a>
   </nav>
 </header>
 
-<main class="container">
-  <section class="hero">
-    <h1>PODBEN - Notícias, Colunas e Fé</h1>
-    <p>Portal cristão com notícias de Aquidauana/MS, colunistas, estudos e leitura bíblica digital.</p>
-    <p class="visitor">👥 Visitantes: <span id="visitor-counter">0</span></p>
+<main class="container home-modern">
+  <section class="hero hero-editorial home-premium-hero mouse-spotlight">
+    <div class="hero-glow glow-1"></div>
+    <div class="hero-glow glow-2"></div>
+    <div class="hero-content">
+      <p class="hero-kicker">Portal cristão & jornalístico de Aquidauana/MS</p>
+      <h1><span class="word-swap" id="swap-word">Notícias</span> com relevância para Aquidauana e região</h1>
+      <p class="hero-lead">Um portal que conecta informação, colunismo, estudos bíblicos e comunhão cristã em uma experiência moderna, acessível e inspiradora.</p>
+      <div class="row-actions hero-cta">
+        <a class="btn magnetic-btn" href="noticias.html">Ler notícias</a>
+        <a class="btn-outline magnetic-btn" href="estudos.html">Explorar estudos bíblicos</a>
+      </div>
+    </div>
+    <aside class="hero-side hero-side-team card home-hero-featured">
+      <p class="meta">Edição de hoje</p>
+      <h3>Informação com propósito e compromisso com a verdade.</h3>
+      <p class="meta">Cobertura local, colunismo cristão e conteúdo que fortalece fé e comunidade.</p>
+      <a class="btn-outline" href="noticias.html">Acompanhar destaque</a>
+    </aside>
   </section>
 
-  <section>
-    <div class="section-head"><h2>Principais notícias de Aquidauana/MS</h2><a href="noticias.html">Todas as notícias</a></div>
-    <div class="grid" id="home-news"></div>
+  <section class="home-news-block home-section-surface">
+    <div class="section-head"><h2>Últimas e principais notícias</h2><a href="noticias.html">Ver todas as notícias</a></div>
+    <div class="home-news-layout stagger-children">
+      <article id="home-news-main" class="card news-main-highlight card-tilt"></article>
+      <div id="home-news-list" class="stack news-secondary-list"></div>
+    </div>
   </section>
 
-  <section>
-    <div class="section-head"><h2>Colunistas em destaque</h2><a href="colunistas.html">Ver colunistas</a></div>
-    <div class="cols-highlight" id="home-columnists"></div>
+  <section class="home-columnists-block home-section-surface">
+    <div class="section-head"><h2>Colunistas em destaque</h2><a href="colunistas.html">Ver todos os colunistas</a></div>
+    <p class="meta section-intro">Quem escreve aqui tem voz, visão e propósito para informar, aconselhar e inspirar.</p>
+    <div class="cols-highlight stagger-children" id="home-columnists"></div>
   </section>
 
-  <section>
-    <div class="section-head"><h2>Fotos em destaque</h2><a href="galeria.html">Galeria completa</a></div>
-    <div class="gallery" id="home-photos"></div>
-  </section>
-
-  <section class="bible-wrap">
-    <h2>Leitura bíblica digital</h2>
-    <p class="meta">Antigo e Novo Testamento com todos os livros e capítulos para abrir direto na Bíblia Online.</p>
+  <section class="bible-wrap home-bible-block home-section-surface">
+    <div class="section-head">
+      <h2>Leitura bíblica e conteúdo para fortalecer sua caminhada</h2>
+      <a href="estudos.html">Ver estudos bíblicos</a>
+    </div>
+    <p class="meta">Acesse a Bíblia digital, explore estudos e encontre conteúdo para aprofundar sua fé no dia a dia.</p>
     <div class="bible-actions">
-      <select id="testament-select"><option value="antigoTestamento">Antigo Testamento</option><option value="novoTestamento">Novo Testamento</option></select>
-      <select id="book-select"></select>
-      <select id="chapter-select"></select>
-      <button id="open-bible">Abrir capítulo</button>
-      <button id="prev-chapter" type="button" class="btn-outline">◀ Capítulo anterior</button>
-      <button id="next-chapter" type="button" class="btn-outline">Próximo capítulo ▶</button>
-      <a class="btn btn-outline" href="https://www.bibliaonline.com.br" target="_blank" rel="noreferrer">Bíblia Online completa</a>
+      <a class="btn" href="biblia.html">Abrir Bíblia digital</a>
+      <a class="btn-outline" href="https://www.bibliaonline.com.br/acf/sl/1" target="_blank" rel="noreferrer">Salmos</a>
+      <a class="btn-outline" href="https://www.bibliaonline.com.br/acf/pv/1" target="_blank" rel="noreferrer">Provérbios</a>
+      <a class="btn-outline" href="https://www.bibliaonline.com.br/acf/mt/1" target="_blank" rel="noreferrer">Evangelhos</a>
+      <a class="btn-outline" href="estudos.html">Leitura de hoje</a>
     </div>
-    <div class="bible-embed-wrap">
-      <iframe id="bible-frame" title="Leitura bíblica digital" loading="lazy"></iframe>
+    <div class="bible-embed-wrap" id="bible-embed-wrap" style="display:none">
+      <button type="button" id="bible-close" class="bible-close-btn" aria-label="Fechar leitura bíblica">✕</button>
+      <iframe id="bible-frame" src="" title="Leitura bíblica digital" loading="lazy" style="width:100%;height:520px;border:0;background:#fff"></iframe>
     </div>
+    <div class="grid stagger-children" id="home-studies"></div>
   </section>
 
-  <section class="card">
-    <h2>Pedido de oração + comentário</h2>
-    <form id="pedido-form" class="stack">
-      <input name="nome" placeholder="Nome" required />
-      <input name="celular" placeholder="Celular" required />
-      <textarea name="mensagem" rows="4" placeholder="Pedido de oração ou comentário" required></textarea>
+  <section class="card glass-panel prayer-panel prayer-conversion home-prayer-premium">
+    <div class="section-head prayer-head">
+      <h2>Compartilhe seu pedido de oração</h2>
+      <p class="meta">Você não precisa caminhar sozinho. Envie seu pedido e permita que outros intercedam por você com fé e amor.</p>
+    </div>
+    <form id="pedido-form" class="stack prayer-form">
+      <label class="editor-field-label" for="pedido-nome">Nome</label>
+      <input id="pedido-nome" name="nome" placeholder="Seu nome" required />
+      <label class="editor-field-label" for="pedido-celular">Celular</label>
+      <input id="pedido-celular" name="celular" placeholder="(00) 00000-0000" required />
+      <label class="editor-field-label" for="pedido-mensagem">Mensagem</label>
+      <textarea id="pedido-mensagem" name="mensagem" rows="5" placeholder="Escreva seu pedido de oração" required></textarea><input type="text" name="website" autocomplete="off" tabindex="-1" class="hp-field"/>
       <div class="row-actions">
-        <button type="submit" name="action" value="whatsapp">Enviar no WhatsApp</button>
+        <button type="submit" name="action" value="whatsapp">Enviar pedido de oração</button>
         <button type="submit" name="action" value="comment" class="btn-outline">Deixar comentário</button>
       </div>
     </form>
-    <div id="pedido-comments" class="stack"></div>
+    <div id="pedido-comments" class="stack prayer-comments"></div>
   </section>
 </main>
 

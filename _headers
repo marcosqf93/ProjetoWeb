@@ -1,0 +1,2 @@
+/*
+  Content-Security-Policy: script-src 'self' https://accounts.google.com 'unsafe-inline'; connect-src 'self' https://accounts.google.com https://projetoweb-zxe9.onrender.com https://bible-api.com; style-src 'self' 'unsafe-inline'; img-src 'self' https://i.ibb.co https://i.pravatar.cc https://cdn.simpleicons.org https://picsum.photos https://res.cloudinary.com data: blob:;

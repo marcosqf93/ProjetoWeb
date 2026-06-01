@@ -93,8 +93,7 @@
     }
 
     try {
-      const url = `https://projetoweb-zxe9.onrender.com/public/bible/${slug}+${num}?translation=acf`;
-      const resp = await fetch(url);
+      const resp = await fetch(`https://projetoweb-zxe9.onrender.com/public/bible/${slug}+${num}`);
       if (!resp.ok) throw new Error('API retornou erro');
       const data = await resp.json();
 
@@ -104,7 +103,13 @@
       }
 
       let html = '';
-      if (data.text) {
+      if (data.verses && Array.isArray(data.verses)) {
+        data.verses.forEach((v) => {
+          const num = v.number || v.verse || '';
+          const txt = v.text || '';
+          html += `<p class="verse"><span class="verse-num">${num}</span>${txt.trim()}</p>`;
+        });
+      } else if (data.text) {
         const verses = data.text.trim().split('\n').filter(Boolean);
         verses.forEach((verse, idx) => {
           html += `<p class="verse"><span class="verse-num">${idx + 1}</span>${verse.trim()}</p>`;

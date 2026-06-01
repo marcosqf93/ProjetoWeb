@@ -178,25 +178,35 @@ const BOOK_NAME_MAP = {
   revelation: 'ap', ap: 'ap', apocalipse: 'ap',
 };
 
+async function httpGet(url, maxRedirects = 5) {
+  const https = await import('https');
+  return new Promise((resolve, reject) => {
+    const req = https.get(url, { timeout: 30000 }, (resp) => {
+      if ((resp.statusCode === 301 || resp.statusCode === 302) && resp.headers.location && maxRedirects > 0) {
+        return httpGet(resp.headers.location, maxRedirects - 1).then(resolve, reject);
+      }
+      if (resp.statusCode !== 200) {
+        resp.resume();
+        return reject(new Error(`HTTP ${resp.statusCode}`));
+      }
+      let body = '';
+      resp.on('data', (chunk) => { body += chunk; });
+      resp.on('end', () => resolve(body));
+    });
+    req.on('error', reject);
+    req.on('timeout', () => { req.destroy(); reject(new Error('Timeout')); });
+  });
+}
+
 async function loadAcfBible() {
   if (acfBible) return acfBible;
   if (acfLoading) return acfLoading;
 
   acfLoading = (async () => {
     try {
-      const https = await import('https');
-      const data = await new Promise((resolve, reject) => {
-        const url = 'https://raw.githubusercontent.com/maatheusgois/bible/main/versions/pt-br/acf.json';
-        https.get(url, (resp) => {
-          let body = '';
-          resp.on('data', (chunk) => { body += chunk; });
-          resp.on('end', () => {
-            try { resolve(JSON.parse(body)); } catch (_e) { reject(new Error('Parse error')); }
-          });
-        }).on('error', reject);
-      });
-      acfBible = data;
-      return data;
+      const raw = await httpGet('https://raw.githubusercontent.com/maatheusgois/bible/main/versions/pt-br/acf.json');
+      acfBible = JSON.parse(raw);
+      return acfBible;
     } catch (_err) {
       acfLoading = null;
       throw _err;

@@ -206,6 +206,15 @@ async function loadAcfBible() {
   return acfLoading;
 }
 
+export async function preloadBible() {
+  try {
+    await loadAcfBible();
+    console.log('Bíblia ACF carregada em memória.');
+  } catch (_err) {
+    console.warn('Falha ao pré-carregar Bíblia ACF:', _err.message);
+  }
+}
+
 router.get('/bible/:reference', async (req, res) => {
   try {
     const reference = decodeURIComponent(req.params.reference).replace(/\+/g, ' ').trim().toLowerCase();

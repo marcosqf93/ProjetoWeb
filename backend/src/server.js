@@ -12,6 +12,7 @@ import studiesRoutes from './routes/studies.js';
 import publicRoutes from './routes/public.js';
 import commentsRoutes from './routes/comments.js';
 import { hasDatabase, initDb } from './db.js';
+import { preloadBible } from './routes/public.js';
 
 const app = express();
 const __filename = fileURLToPath(import.meta.url);
@@ -74,6 +75,8 @@ async function bootstrap() {
     } else {
       console.warn('DATABASE_URL ausente: endpoints persistentes retornarão 503 até configurar banco.');
     }
+
+    preloadBible();
 
     app.listen(port, () => {
       console.log(`PODBEN backend listening on :${port}`);

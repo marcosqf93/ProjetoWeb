@@ -20,13 +20,16 @@ function mapPrayer(row) {
     nome: row.nome,
     celular: row.celular,
     mensagem: row.mensagem,
+    tipo: row.tipo || '',
+    para: row.para || '',
+    motivo: row.motivo || '',
     status: row.status || 'approved',
     createdAt: row.created_at,
   };
 }
 
 router.post('/prayer', async (req, res) => {
-  const { nome, celular, mensagem, honeypot, recaptchaToken } = req.body || {};
+  const { nome, celular, mensagem, tipo, para, motivo, honeypot, recaptchaToken } = req.body || {};
 
   if (honeypot) return res.status(400).json({ error: 'Spam detectado' });
   if (!nome || !mensagem || !celular) return res.status(400).json({ error: 'Campos obrigatórios' });
@@ -43,8 +46,8 @@ router.post('/prayer', async (req, res) => {
     if (!data.success) return res.status(400).json({ error: 'Falha no reCAPTCHA' });
   }
 
-  await pool.query("INSERT INTO prayer_requests (nome, celular, mensagem, status) VALUES ($1, $2, $3, 'pending')", [nome, celular, mensagem]);
-  sendPrayerEmail({ nome, celular, mensagem }).catch(() => {});
+  await pool.query("INSERT INTO prayer_requests (nome, celular, mensagem, tipo, para, motivo, status) VALUES ($1, $2, $3, $4, $5, $6, 'pending')", [nome, celular, mensagem, tipo || '', para || '', motivo || '']);
+  sendPrayerEmail({ nome, celular, mensagem, tipo, para, motivo }).catch(() => {});
   return res.status(201).json({ ok: true });
 });
 

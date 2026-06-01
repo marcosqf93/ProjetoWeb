@@ -42,6 +42,9 @@ export async function initDb() {
     );
   `);
   await pool.query(`ALTER TABLE prayer_requests ADD COLUMN IF NOT EXISTS status TEXT NOT NULL DEFAULT 'approved';`);
+  await pool.query(`ALTER TABLE prayer_requests ADD COLUMN IF NOT EXISTS tipo TEXT;`);
+  await pool.query(`ALTER TABLE prayer_requests ADD COLUMN IF NOT EXISTS para TEXT;`);
+  await pool.query(`ALTER TABLE prayer_requests ADD COLUMN IF NOT EXISTS motivo TEXT;`);
 
   await pool.query(`
     CREATE TABLE IF NOT EXISTS users (

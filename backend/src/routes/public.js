@@ -1,4 +1,5 @@
 import express from 'express';
+import crypto from 'crypto';
 import { pool } from '../db.js';
 import { requireAuth } from '../middleware/auth.js';
 import { requireRole } from '../middleware/rbac.js';
@@ -13,6 +14,30 @@ function assertDb(res) {
   }
   return true;
 }
+
+router.post('/visit', async (req, res) => {
+  if (!assertDb(res)) return;
+  try {
+    const ip = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.socket?.remoteAddress || 'unknown';
+    const ua = req.headers['user-agent'] || 'unknown';
+    const hash = crypto.createHash('sha256').update(`${ip}:${ua}`).digest('hex');
+    await pool.query('INSERT INTO visitors (visitor_hash) VALUES ($1) ON CONFLICT (visitor_hash) DO NOTHING', [hash]);
+    const { rows } = await pool.query('SELECT COUNT(*)::int AS total FROM visitors');
+    return res.json({ total: rows[0]?.total || 0 });
+  } catch (_err) {
+    return res.status(500).json({ error: 'Erro ao registrar visitante' });
+  }
+});
+
+router.get('/visitors', async (_req, res) => {
+  if (!assertDb(res)) return;
+  try {
+    const { rows } = await pool.query('SELECT COUNT(*)::int AS total FROM visitors');
+    return res.json({ total: rows[0]?.total || 0 });
+  } catch (_err) {
+    return res.status(500).json({ error: 'Erro ao consultar visitantes' });
+  }
+});
 
 function mapPrayer(row) {
   return {

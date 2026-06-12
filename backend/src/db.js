@@ -110,5 +110,14 @@ export async function initDb() {
   await pool.query(`CREATE INDEX IF NOT EXISTS idx_comments_context ON comments (context, context_id);`);
   await pool.query(`ALTER TABLE comments ADD COLUMN IF NOT EXISTS status TEXT NOT NULL DEFAULT 'approved';`);
 
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS visitors (
+      id BIGSERIAL PRIMARY KEY,
+      visitor_hash TEXT NOT NULL UNIQUE,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+  `);
+  await pool.query(`CREATE INDEX IF NOT EXISTS idx_visitors_hash ON visitors (visitor_hash);`);
+
   return true;
 }
